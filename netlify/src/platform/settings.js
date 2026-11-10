@@ -18,6 +18,7 @@ const KEY = "barra-sepia:v1";
 /**
  * @typedef {Object} Progress
  * @property {number} lastLevel
+ * @property {boolean} practiced   Completó la práctica guiada.
  */
 
 function prefersReducedMotion() {
@@ -68,6 +69,7 @@ export function normalizeState(raw) {
     },
     progress: {
       lastLevel: Number.isInteger(p.lastLevel) && p.lastLevel >= 1 ? p.lastLevel : 1,
+      practiced: p.practiced === true,
     },
   };
 }

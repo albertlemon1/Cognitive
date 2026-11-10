@@ -28,6 +28,7 @@ const ARRANGEMENTS = {
  * @property {string[]} modifiers
  * @property {boolean} canPull
  * @property {boolean} gaugeActive
+ * @property {"below"|"in"|"above"|null} gaugeZone   Posición de la aguja durante la extracción.
  * @property {boolean} pressureHeld
  * @property {boolean} canClean
  * @property {number} cleaningFraction   0 si no se está limpiando.
@@ -191,7 +192,8 @@ export class ControlsView {
       fitText(subText, maxW(r), 20, 13 * k, 9);
     };
     big("lever", 84, "PREPARAR", this.options.keyHints ? "Tira · Enter" : "Tira de la palanca", (r) => r.w - 92);
-    big("pressure", 96, "PRESIÓN", this.options.keyHints ? "Mantén · Espacio" : "Mantén pulsado", (r) => r.w - 104);
+    this.pressureSubDefault = this.options.keyHints ? "Mantén · Espacio" : "Mantén pulsado";
+    big("pressure", 96, "PRESIÓN", this.pressureSubDefault, (r) => r.w - 104);
 
     const rc = this.rects.get("clean");
     const clean = add("clean:label", this.scene.add.text(rc.x + rc.w / 2, rc.y + rc.h - 12, this.options.keyHints ? "Limpiar · L" : "Limpiar", textStyle(16 * k, { bold: true, align: "center" })));
@@ -213,7 +215,7 @@ export class ControlsView {
     this.view = view;
     const pulse = view.gaugeActive && !this.options.reducedMotion ? Math.floor(this.time / 220) % 2 : 0;
     const key = JSON.stringify([
-      view.phase, view.selectedDrink, view.modifiers, view.canPull, view.gaugeActive, view.pressureHeld,
+      view.phase, view.selectedDrink, view.modifiers, view.canPull, view.gaugeActive, view.gaugeZone, view.pressureHeld,
       view.canClean, Math.round(view.cleaningFraction * 40), view.status, pulse, this.mode, this.options,
     ]);
     if (key === this.lastKey) return;
@@ -324,12 +326,15 @@ export class ControlsView {
 
   drawPressure(g, r, view, pulse) {
     const active = view.gaugeActive;
-    drawPanel(g, r.x, r.y, r.w, r.h, { fill: active ? COLORS.mustardLight : COLORS.paperShade, border: COLORS.brassDark, radius: 14 });
+    // Mismo código de color que el manómetro: turquesa en la zona, ladrillo fuera.
+    const zone = active ? view.gaugeZone : null;
+    const zoneFill = zone === "in" ? COLORS.tealLight : zone ? 0xf2c4b4 : COLORS.mustardLight;
+    drawPanel(g, r.x, r.y, r.w, r.h, { fill: active ? zoneFill : COLORS.paperShade, border: zone === "in" ? COLORS.tealDark : COLORS.brassDark, radius: 14 });
     const cx = r.x + 48;
     const cy = r.y + r.h / 2;
     const radius = Math.min(r.h * 0.36, 36);
     if (active) {
-      g.fillStyle(COLORS.glow, pulse ? 0.9 : 0.5);
+      g.fillStyle(zone === "in" ? COLORS.teal : zone ? 0xe0896c : COLORS.glow, pulse ? 0.9 : 0.5);
       g.fillCircle(cx, cy, radius + 10);
     }
     g.fillStyle(COLORS.brassDark, 1);
@@ -341,7 +346,17 @@ export class ControlsView {
     g.fillCircle(cx, cy + (pressed ? 2 : 0), radius * (pressed ? 0.82 : 0.9));
     g.fillStyle(COLORS.white, pressed ? 0.15 : 0.35);
     g.fillCircle(cx - radius * 0.3, cy - radius * 0.3, radius * 0.3);
-    this.texts.get("pressure:label").setColor(active ? CSS.brickDark : "#8a755c");
+    this.texts.get("pressure:label").setColor(active ? (zone === "in" ? CSS.tealDark : CSS.brickDark) : "#8a755c");
+    const sub = this.texts.get("pressure:sub");
+    let subText = this.pressureSubDefault;
+    if (zone === "in") subText = "¡En zona!";
+    else if (zone === "below") subText = "Pulsa: sube";
+    else if (zone === "above") subText = "Suelta: baja";
+    if (sub.text !== subText) {
+      sub.setText(subText);
+      sub.setColor(zone === "in" ? CSS.tealDark : zone ? CSS.brickDark : "#6b5640");
+      fitText(sub, r.w - 104, 20, 13 * (this.options.largeText ? 1.15 : 1), 9);
+    }
   }
 
   drawClean(g, r, view) {
@@ -373,6 +388,10 @@ export class ControlsView {
     const r = this.rects.get(id);
     if (!r) return null;
     const s = this.root.scaleX;
-    return { x: this.root.x + (r.x + r.w / 2) * s, y: this.root.y + (r.y + r.h / 2) * s };
+    return {
+      x: this.root.x + (r.x + r.w / 2) * s,
+      y: this.root.y + (r.y + r.h / 2) * s,
+      radius: Math.min(Math.max(r.w, r.h) * 0.45, 90) * s,
+    };
   }
 }

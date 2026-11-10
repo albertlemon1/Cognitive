@@ -86,7 +86,10 @@ export class HudView {
       const secs = Math.ceil(state.remainingMs / 1000);
       const clock = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`;
       const mode = state.mode === "calma" ? " · Calma" : "";
-      text = `Nivel ${state.level}${mode}   ${clock}   Propinas ${state.tips}`;
+      text =
+        state.mode === "practica"
+          ? `Práctica guiada   Propinas ${state.tips}`
+          : `Nivel ${state.level}${mode}   ${clock}   Propinas ${state.tips}`;
     }
     if (text !== this.lastInfo) {
       this.lastInfo = text;

@@ -6,13 +6,14 @@ import { DISCLAIMER, escapeHtml, notebookHtml, summaryHtml } from "./notebook.js
 /**
  * @typedef {Object} OverlayCallbacks
  * @property {() => void} onStart
+ * @property {() => void} onPractice
  * @property {() => void} onResume
  * @property {() => void} onQuit
  * @property {(patch: Partial<import("../platform/settings.js").Settings>) => void} onSettings
  * @property {() => Promise<void>} onOpenNotebook
  */
 
-const SCREENS = ["loading", "start", "pause", "settings", "summary", "notebook", "error"];
+const SCREENS = ["loading", "start", "pause", "settings", "summary", "notebook", "practice-done", "error"];
 
 export class Overlay {
   /**
@@ -38,6 +39,9 @@ export class Overlay {
   bind() {
     const on = (selector, event, fn) => this.$(selector).addEventListener(event, fn);
     on("#btn-start", "click", () => this.callbacks.onStart());
+    on("#btn-practice", "click", () => this.callbacks.onPractice());
+    on("#btn-practice-again", "click", () => this.callbacks.onPractice());
+    on("#btn-practice-start", "click", () => this.callbacks.onStart());
     on("#btn-again", "click", () => this.callbacks.onStart());
     on("#btn-resume", "click", () => this.callbacks.onResume());
     on("#btn-quit", "click", () => this.callbacks.onQuit());
@@ -113,6 +117,29 @@ export class Overlay {
     return !this.root.hidden;
   }
 
+  /**
+   * La primera vez, la práctica guiada es la acción principal.
+   * @param {boolean} practiced
+   */
+  setPracticed(practiced) {
+    const practice = this.$("#btn-practice");
+    const start = this.$("#btn-start");
+    this.$("#first-time").hidden = practiced;
+    practice.classList.toggle("primary", !practiced);
+    start.classList.toggle("primary", practiced);
+    // El botón principal va primero y recibe el foco.
+    const actions = start.parentElement;
+    if (!practiced) {
+      actions.insertBefore(practice, start);
+      practice.setAttribute("data-autofocus", "");
+      start.removeAttribute("data-autofocus");
+    } else {
+      actions.insertBefore(start, practice);
+      start.setAttribute("data-autofocus", "");
+      practice.removeAttribute("data-autofocus");
+    }
+  }
+
   showError(message) {
     this.$("#error-message").textContent = message;
     this.show("error");
@@ -160,6 +187,7 @@ function template() {
       <li><span><strong>Toca la comanda</strong> para entregar la bebida.</span></li>
     </ol>
     <p class="rule">Regla de la casa: manda el <strong>texto</strong> de la comanda, no el dibujo.</p>
+    <p class="first-time" id="first-time">¿Primera vez? Empieza con la <strong>práctica guiada</strong>: dos comandas sin reloj, con indicaciones paso a paso.</p>
     <div class="options">
       <label class="check"><input type="checkbox" id="start-calm"> Modo Calma <span class="hint">sin reloj de paciencia y con menos comandas</span></label>
       <label class="select">Duración del turno
@@ -168,6 +196,7 @@ function template() {
     </div>
     <div class="actions">
       <button type="button" class="btn primary" id="btn-start" data-autofocus>Abrir la cafetería</button>
+      <button type="button" class="btn" id="btn-practice">Práctica guiada</button>
       <button type="button" class="btn" id="btn-notebook-start">Cuaderno del barista</button>
       <button type="button" class="btn" id="btn-settings-start">Ajustes</button>
     </div>
@@ -219,6 +248,23 @@ function template() {
     <div id="notebook-body"></div>
     <div class="actions">
       <button type="button" class="btn primary" id="btn-notebook-back" data-autofocus>Volver</button>
+    </div>
+  </section>
+
+  <section class="card" data-screen="practice-done" hidden aria-labelledby="practice-title">
+    <p class="eyebrow">Práctica guiada</p>
+    <h2 id="practice-title">¡Lista la práctica!</h2>
+    <p class="lede">Ya sabes atender la barra. Recuerda lo esencial:</p>
+    <ul class="recap">
+      <li><strong>Lee la comanda</strong> y elige esa bebida y sus extras en la consola.</li>
+      <li><strong>Tira de PREPARAR.</strong></li>
+      <li>En la extracción, <strong>mantén PRESIÓN para subir</strong> la aguja y <strong>suelta para bajarla</strong>. Turquesa: estás en la zona. Rojo: corrige.</li>
+      <li><strong>Toca la comanda</strong> para entregar la bebida.</li>
+    </ul>
+    <p class="note">En el turno de verdad las comandas tienen reloj de paciencia y, en niveles altos, se voltean: tendrás que recordarlas.</p>
+    <div class="actions">
+      <button type="button" class="btn primary" id="btn-practice-start" data-autofocus>Abrir la cafetería</button>
+      <button type="button" class="btn" id="btn-practice-again">Repetir la práctica</button>
     </div>
   </section>
 

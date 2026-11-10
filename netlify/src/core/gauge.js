@@ -105,3 +105,15 @@ export class Gauge {
     };
   }
 }
+
+/**
+ * Posición de la aguja respecto de la zona.
+ * @param {GaugeState|null|undefined} gauge
+ * @returns {"below"|"in"|"above"|null}
+ */
+export function gaugeZone(gauge) {
+  if (!gauge) return null;
+  if (gauge.value < gauge.zoneMin) return "below";
+  if (gauge.value > gauge.zoneMax) return "above";
+  return "in";
+}

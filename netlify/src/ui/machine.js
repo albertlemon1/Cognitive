@@ -4,6 +4,7 @@
 
 import { COLORS, CSS, FONTS, hexToNum } from "./palette.js";
 import { drawCup, drawModifierIcon, iconSpec, fitText, textStyle } from "./draw.js";
+import { gaugeZone } from "../core/gauge.js";
 
 export const MACHINE_W = 600;
 export const MACHINE_H = 520;
@@ -67,7 +68,7 @@ export class MachineView {
     this.arms = scene.add.graphics();
 
     this.plaqueText = scene.add.text(CX, 268, "", textStyle(22, { font: FONTS.type, color: CSS.ink, align: "center" })).setOrigin(0.5);
-    this.gaugeLabel = scene.add.text(GAUGE.x, GAUGE.y + 26, "PRESIÓN", textStyle(11, { font: FONTS.body, color: CSS.ink, bold: true, align: "center" })).setOrigin(0.5);
+    this.gaugeLabel = scene.add.text(GAUGE.x, GAUGE.y + 24, "PRESIÓN", textStyle(11, { font: FONTS.body, color: CSS.ink, bold: true, align: "center" })).setOrigin(0.5);
 
     this.body.add([
       this.arms,
@@ -237,11 +238,22 @@ export class MachineView {
     const g = this.gaugeArt;
     g.clear();
     const { x, y, r } = GAUGE;
+    // Durante la extracción, todo el manómetro cambia de color según la aguja:
+    // turquesa dentro de la zona, ladrillo fuera. El texto da la misma pista sin color.
+    const zone = active ? gaugeZone(gauge) : null;
+    const inZone = zone === "in";
+    const outColor = 0xe0896c;
+
     g.fillStyle(COLORS.black, 0.35);
     g.fillCircle(x + 3, y + 4, r + 12);
+    if (zone) {
+      const pulse = this.options.reducedMotion ? 0.45 : 0.3 + 0.25 * Math.sin(this.time / 120);
+      g.fillStyle(inZone ? COLORS.tealLight : outColor, pulse);
+      g.fillCircle(x, y, r + 24);
+    }
     g.fillStyle(COLORS.brassDark, 1);
     g.fillCircle(x, y, r + 12);
-    g.fillStyle(active ? COLORS.glow : COLORS.brass, 1);
+    g.fillStyle(zone ? (inZone ? COLORS.tealLight : outColor) : COLORS.brass, 1);
     g.fillCircle(x, y, r + 8);
     g.fillStyle(COLORS.cream, 1);
     g.fillCircle(x, y, r);
@@ -251,7 +263,8 @@ export class MachineView {
       // Zona objetivo.
       const a0 = angleAt(gauge.zoneMin);
       const a1 = angleAt(gauge.zoneMax);
-      g.fillStyle(this.options.colorBlind ? 0x3b6fb6 : COLORS.teal, 0.85);
+      const zoneColor = this.options.colorBlind ? 0x3b6fb6 : inZone ? 0x3fa596 : COLORS.teal;
+      g.fillStyle(zoneColor, 0.9);
       g.slice(x, y, r - 4, a0, a1, false);
       g.fillPath();
       g.fillStyle(COLORS.cream, 1);
@@ -279,20 +292,43 @@ export class MachineView {
     // Aguja.
     const value = gauge ? gauge.value : 0;
     const a = angleAt(value);
-    g.lineStyle(4, COLORS.brickDark, 1);
+    g.lineStyle(zone ? 5 : 4, zone ? (inZone ? COLORS.tealDark : COLORS.brick) : COLORS.brickDark, 1);
     g.lineBetween(x, y, x + Math.cos(a) * (r - 8), y + Math.sin(a) * (r - 8));
     g.fillStyle(COLORS.ink, 1);
     g.fillCircle(x, y, 7);
     g.fillStyle(COLORS.brass, 1);
     g.fillCircle(x, y, 3);
 
-    // Lámpara "en zona".
-    if (gauge && active) {
-      const inZone = gauge.inZone;
-      g.fillStyle(inZone ? COLORS.glow : COLORS.brickDark, 1);
-      g.fillCircle(x, y + r - 12, 6);
+    // Indicación en el centro del manómetro: qué hacer ahora.
+    let label = "PRESIÓN";
+    let color = CSS.ink;
+    if (zone === "in") {
+      label = "EN ZONA";
+      color = CSS.tealDark;
+    } else if (zone === "below") {
+      label = "PULSA";
+      color = CSS.brickDark;
+    } else if (zone === "above") {
+      label = "SUELTA";
+      color = CSS.brickDark;
     }
-    this.gaugeLabel.setVisible(!(gauge && active));
+    if (zone === "below" || zone === "above") {
+      // Flecha: hacia dónde debe ir la aguja.
+      const ay = y + 40;
+      const dir = zone === "below" ? -1 : 1;
+      g.fillStyle(COLORS.brickDark, 1);
+      g.fillTriangle(x - 7, ay - dir * 4, x + 7, ay - dir * 4, x, ay + dir * 5);
+    } else if (zone === "in") {
+      g.fillStyle(COLORS.tealDark, 1);
+      g.fillCircle(x, y + 40, 5);
+    }
+    const key = `${label}|${color}`;
+    if (key !== this.gaugeLabelKey) {
+      this.gaugeLabelKey = key;
+      this.gaugeLabel.setText(label);
+      this.gaugeLabel.setColor(color);
+      this.gaugeLabel.setFontSize(zone ? 13 : 11);
+    }
   }
 
   /**
@@ -733,7 +769,21 @@ export class MachineView {
 
   /** Punto del mundo donde está la taza (para animaciones de entrega). */
   cupWorldPoint() {
-    const m = this.root.getWorldTransformMatrix();
-    return { x: m.tx + CUP.x * m.scaleX, y: m.ty + (CUP.base - CUP.size * 0.5) * m.scaleY };
+    return this.localToWorld(CUP.x, CUP.base - CUP.size * 0.5);
+  }
+
+  /** Centro del manómetro en coordenadas del mundo. */
+  gaugeWorldPoint() {
+    return { ...this.localToWorld(GAUGE.x, GAUGE.y), radius: (GAUGE.r + 14) * this.root.scaleX };
+  }
+
+  /** Placa del nombre (y del paso en curso) en coordenadas del mundo. */
+  plaqueWorldPoint() {
+    return { ...this.localToWorld(CX, 270), radius: 120 * this.root.scaleX };
+  }
+
+  localToWorld(x, y) {
+    const s = this.root.scaleX;
+    return { x: this.root.x + x * s, y: this.root.y + y * s };
   }
 }

@@ -4,6 +4,8 @@ Juego web cognitivo. Operas una máquina de café de los años 50: lees comandas
 
 El juego entrena tareas concretas dentro del juego; no es una herramienta médica ni garantiza mejoras en la vida diaria.
 
+Si es tu primera vez, empieza por **Práctica guiada** en la pantalla de inicio: dos comandas sin reloj, con indicaciones paso a paso.
+
 El diseño técnico completo está en [`docs/DISENO.md`](docs/DISENO.md).
 
 ## Jugar en local

@@ -148,5 +148,25 @@ export function createOrderFactory({ catalog, rng, levelId }) {
     return { id, drinkId, modifiers: pickModifiers(drinkId, params.maxModifiers), iconDrinkId: drinkId, trap: null };
   }
 
-  return { next, get issued() { return counter; } };
+  /**
+   * Comanda fija (práctica guiada): sin trampas y con modificadores en orden canónico.
+   * @param {{ drinkId: string, modifiers?: string[] }} spec
+   * @returns {Order}
+   */
+  function fromSpec(spec) {
+    if (!(spec.drinkId in catalog.drinks)) throw new Error(`Bebida inexistente: ${spec.drinkId}`);
+    for (const m of spec.modifiers ?? []) {
+      if (!(m in catalog.modifiers)) throw new Error(`Modificador inexistente: ${m}`);
+    }
+    counter += 1;
+    return {
+      id: counter,
+      drinkId: spec.drinkId,
+      modifiers: canonicalModifiers(catalog, spec.modifiers ?? []),
+      iconDrinkId: spec.drinkId,
+      trap: null,
+    };
+  }
+
+  return { next, fromSpec, get issued() { return counter; } };
 }

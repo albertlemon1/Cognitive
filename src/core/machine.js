@@ -41,11 +41,13 @@ import { Gauge, GAUGE } from "./gauge.js";
 export class BrewMachine {
   /**
    * @param {{ catalog: import("./catalog.js").Catalog, rng: import("./prng.js").Rng,
-   *           gauge: import("./gauge.js").GaugeParams }} options
+   *           gauge: import("./gauge.js").GaugeParams, gaugeStepScale?: number }} options
+   *   gaugeStepScale: multiplica la duración del paso con manómetro (la práctica lo alarga).
    */
-  constructor({ catalog, rng, gauge }) {
+  constructor({ catalog, rng, gauge, gaugeStepScale = 1 }) {
     this.catalog = catalog;
     this.rng = rng;
+    this.gaugeStepScale = gaugeStepScale;
     this.gaugeParams = { ...gauge };
     this.reset();
   }
@@ -105,7 +107,9 @@ export class BrewMachine {
   /** @returns {boolean} true si empezó a preparar. */
   pullLever() {
     if (this.phase !== "idle" || !this.selectedDrink) return false;
-    this.steps = stepsFor(this.catalog, this.selectedDrink, this.modifiers);
+    this.steps = stepsFor(this.catalog, this.selectedDrink, this.modifiers).map((step) =>
+      step.gauge && this.gaugeStepScale !== 1 ? { ...step, durationMs: Math.round(step.durationMs * this.gaugeStepScale) } : step,
+    );
     this.phase = "brewing";
     this.stepIndex = -1;
     this.stepElapsed = 0;

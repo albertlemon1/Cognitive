@@ -7,7 +7,10 @@ import { RailView } from "../ui/rail.js";
 import { ControlsView, DRINK_KEYS } from "../ui/controls.js";
 import { HudView } from "../ui/hud.js";
 import { BackdropView, FilmView, FeedbackView } from "../ui/effects.js";
+import { CoachView } from "../ui/coach.js";
 import { CSS } from "../ui/palette.js";
+import { gaugeZone } from "../core/gauge.js";
+import { practiceStep } from "../core/tutorial.js";
 
 /**
  * @typedef {Object} SceneApp
@@ -70,7 +73,11 @@ export function defineBarScene(Phaser) {
       );
       this.hud = new HudView(this, { onPause: () => this.requestPause() }, this.viewOptions);
       this.feedback = new FeedbackView(this, this.viewOptions);
+      this.coach = new CoachView(this, this.viewOptions);
       this.film = new FilmView(this, this.viewOptions);
+      this.practice = false;
+      this.practiceStepId = "";
+      this.practiceDoneAt = 0;
 
       this.input.on("pointerup", () => this.onPressure(false));
       this.input.on("gameout", () => this.onPressure(false));
@@ -119,6 +126,9 @@ export function defineBarScene(Phaser) {
       this.machine.root.setScale(ms);
       this.machine.root.setPosition(machine.x + (machine.w - MACHINE_W * ms) / 2, machine.y + (machine.h - MACHINE_H * ms));
       this.feedback.setAnchor(machine.x + machine.w / 2, machine.y + 8, Math.min(portrait ? 640 : 480, machine.w - 24), portrait ? 1.35 : 1);
+      // La guía de la práctica ocupa los dos tercios derechos del riel (en la práctica
+      // solo hay una comanda, en el primer hueco), así no tapa la máquina ni el manómetro.
+      this.coach.setAnchor(rail.x + (rail.w * 2) / 3, rail.y + 30, Math.min(560, (rail.w * 2) / 3 - 20), portrait ? 1.35 : 1);
       this.film.layout(W, H);
       this.regions = { rail, machine, controls };
     }
@@ -135,6 +145,7 @@ export function defineBarScene(Phaser) {
       this.controls.setOptions(patch);
       this.hud.setOptions(patch);
       this.feedback.setOptions(patch);
+      this.coach.setOptions(patch);
       this.film.setOptions(patch);
       this.relayout();
     }
@@ -142,11 +153,16 @@ export function defineBarScene(Phaser) {
     // --- Ciclo de sesión ----------------------------------------------------
 
     /**
-     * @param {{ seed: number, mode: "normal"|"calma", durationMs: number, startLevel: number, sessionId: string }} options
+     * @param {{ seed: number, mode: "normal"|"calma"|"practica", durationMs: number, startLevel: number, sessionId: string,
+     *           scriptedOrders?: Array<{ drinkId: string, modifiers?: string[] }> }} options
      */
     startSession(options) {
       this.rail.clear();
       this.feedback.hide();
+      this.coach.hide();
+      this.practice = options.mode === "practica";
+      this.practiceStepId = "";
+      this.practiceDoneAt = 0;
       this.session = createSession({ catalog: this.app.catalog, levelId: "barrio", ...options });
       this.paused = false;
       this.endHandled = false;
@@ -202,6 +218,7 @@ export function defineBarScene(Phaser) {
       this.controls.render(this.controlsView(live ? state : null), dt);
       this.hud.update(live ? state : null, dt);
       this.feedback.update(dt);
+      this.updatePractice(live ? state : null, dt);
       this.film.update();
       if (live) {
         const gaugeActive = state.machine.phase === "brewing" && !!state.machine.steps[state.machine.stepIndex]?.gauge;
@@ -225,6 +242,7 @@ export function defineBarScene(Phaser) {
           modifiers: [],
           canPull: false,
           gaugeActive: false,
+          gaugeZone: null,
           pressureHeld: false,
           canClean: false,
           cleaningFraction: 0,
@@ -238,7 +256,12 @@ export function defineBarScene(Phaser) {
       let status;
       if (cleaning) status = "Limpiando la máquina… el riel espera.";
       else if (m.phase === "ready") status = "¡Lista! Toca la comanda que le corresponde.";
-      else if (gaugeActive) status = "Mantén PRESIÓN: la aguja en la zona.";
+      else if (gaugeActive) {
+        const zone = gaugeZone(m.gauge);
+        if (zone === "in") status = "¡En zona! Mantén el ritmo con toques cortos.";
+        else if (zone === "above") status = "Suelta PRESIÓN: la aguja debe bajar a la zona.";
+        else status = "Pulsa PRESIÓN: la aguja debe subir a la zona.";
+      }
       else if (m.phase === "brewing") status = `Preparando: ${step ? step.label.toLowerCase() : "…"}`;
       else if (state.orders.length === 0) status = "Esperando comandas…";
       else if (!m.selectedDrink) status = "Elige la bebida de una comanda.";
@@ -249,6 +272,7 @@ export function defineBarScene(Phaser) {
         modifiers: m.modifiers,
         canPull: m.phase === "idle" && !!m.selectedDrink && !cleaning,
         gaugeActive,
+        gaugeZone: gaugeActive ? gaugeZone(m.gauge) : null,
         pressureHeld: m.pressureHeld,
         canClean: m.phase === "idle" && !cleaning,
         cleaningFraction: cleaning ? 1 - state.cleaningMs / 3000 : 0,
@@ -427,9 +451,43 @@ export function defineBarScene(Phaser) {
 
     /** Punto del mundo de un control interactivo ("drink:cortado", "lever", "ticket:3", "pause"...). */
     worldPointFor(id) {
-      if (id.startsWith("ticket:")) return this.rail.ticketCenter(Number(id.slice(7)));
+      if (id.startsWith("ticket:")) {
+        const c = this.rail.ticketCenter(Number(id.slice(7)));
+        return c ? { ...c, radius: 92 * this.rail.ticketScale } : null;
+      }
       if (id === "pause") return this.hud.pauseCenter();
+      if (id === "gauge") return this.machine.gaugeWorldPoint();
+      if (id === "plaque") return this.machine.plaqueWorldPoint();
       return this.controls.controlCenter(id);
+    }
+
+    // --- Práctica guiada ----------------------------------------------------
+
+    updatePractice(state, dt) {
+      if (!this.practice || !state || this.paused) {
+        if (!this.practice || !state) this.coach.hide();
+        return;
+      }
+      const step = practiceStep(state, this.app.catalog, { keyHints: this.viewOptions.keyHints });
+      if (!step) {
+        this.coach.hide();
+        return;
+      }
+      const tone = step.id === "done" || step.zone === "in" ? "good" : step.zone ? "bad" : "info";
+      const targets = step.targets.map((id) => this.worldPointFor(id));
+      this.coach.update({ title: step.title, text: step.text, tone }, targets, dt);
+      if (step.id !== this.practiceStepId) {
+        this.practiceStepId = step.id;
+        this.app.announce(step.text);
+      }
+      if (step.id === "done") {
+        if (!this.practiceDoneAt) {
+          this.practiceDoneAt = state.clock;
+          this.machine.celebrate();
+        } else if (state.clock - this.practiceDoneAt > 1800) {
+          this.session.end("done");
+        }
+      }
     }
   };
 }

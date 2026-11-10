@@ -217,6 +217,21 @@ body {
   transform: rotate(-0.6deg);
 }
 
+.first-time {
+  margin: 0 0 1.1em;
+  padding: 0.7em 0.9em;
+  background: var(--cream);
+  border: 2px solid var(--teal-dark);
+  border-radius: 10px;
+}
+
+.recap {
+  margin: 0 0 1em;
+  padding-left: 1.2em;
+  display: grid;
+  gap: 0.4em;
+}
+
 .options,
 .settings {
   display: grid;

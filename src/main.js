@@ -9,6 +9,7 @@ import { logicalSize } from "./platform/viewport.js";
 import { openStore, telemetryEvents } from "./telemetry/store.js";
 import { AudioEngine } from "./audio/audio.js";
 import { Overlay } from "./ui/overlay.js";
+import { PRACTICE_ORDERS, PRACTICE_GAUGE_SCALE } from "./core/tutorial.js";
 import { defineBarScene } from "./scenes/BarScene.js";
 
 export const APP_VERSION = "0.1.0";
@@ -109,6 +110,7 @@ async function boot() {
 
   const overlay = new Overlay(overlayEl, {
     onStart: () => startSession(),
+    onPractice: () => startPractice(),
     onResume: () => {
       overlay.hide();
       if (scene) scene.resumeSession();
@@ -124,6 +126,7 @@ async function boot() {
     },
   });
   overlay.syncSettings(settingsStore.settings);
+  overlay.setPracticed(settingsStore.progress.practiced);
   overlay.show("loading");
 
   function applySettings(patch) {
@@ -152,9 +155,40 @@ async function boot() {
     if (game && game.canvas) game.canvas.focus({ preventScroll: true });
   }
 
+  /** Práctica guiada: dos comandas con guion, sin reloj y sin guardar en el historial. */
+  function startPractice() {
+    if (!scene) return;
+    audio.unlock();
+    audio.applySettings(settingsStore.settings);
+    const seed = newSeed();
+    startedAt = new Date();
+    overlay.hide();
+    scene.startSession({
+      seed,
+      mode: "practica",
+      durationMs: 30 * 60 * 1000,
+      startLevel: 1,
+      sessionId: `p-${startedAt.getTime().toString(36)}`,
+      scriptedOrders: PRACTICE_ORDERS,
+      gaugeStepScale: PRACTICE_GAUGE_SCALE,
+    });
+    if (game && game.canvas) game.canvas.focus({ preventScroll: true });
+  }
+
   async function onSessionEnd(session) {
     const log = session.log;
     const state = session.getState();
+    if (state.mode === "practica") {
+      if (state.endReason === "done") {
+        settingsStore.updateProgress({ practiced: true });
+        overlay.setPracticed(true);
+        overlay.show("practice-done");
+        announce("Práctica completada.");
+      } else {
+        overlay.show("start");
+      }
+      return;
+    }
     const end = log[log.length - 1];
     const summary = end.summary;
     const resolved = summary.served + summary.missed;

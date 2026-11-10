@@ -49,7 +49,9 @@ export const SESSION = Object.freeze({
  *   catalog: import("./catalog.js").Catalog,
  *   seed: number,
  *   levelId?: string,
- *   mode?: "normal"|"calma",
+ *   mode?: "normal"|"calma"|"practica",
+ *   scriptedOrders?: Array<{ drinkId: string, modifiers?: string[] }>,
+ *   gaugeStepScale?: number,
  *   durationMs?: number,
  *   startLevel?: number,
  *   sessionId?: string,
@@ -58,10 +60,13 @@ export const SESSION = Object.freeze({
 export function createSession(options) {
   const { catalog, seed } = options;
   const levelId = options.levelId ?? Object.keys(catalog.levels)[0];
-  const mode = options.mode === "calma" ? "calma" : "normal";
+  const mode = options.mode === "calma" || options.mode === "practica" ? options.mode : "normal";
   const durationMs = options.durationMs ?? 5 * 60 * 1000;
   const sessionId = options.sessionId ?? `s-${seed}`;
-  const calm = mode === "calma";
+  // La práctica guiada usa los parámetros tranquilos: sin reloj de paciencia.
+  const calm = mode !== "normal";
+  // Con guion, las comandas salen en ese orden y no llegan más al terminarlo.
+  const script = options.scriptedOrders ? options.scriptedOrders.slice() : null;
 
   const orderRng = createRng(seed);
   const gaugeRng = createRng((seed ^ 0x9e3779b9) >>> 0);
@@ -73,6 +78,7 @@ export function createSession(options) {
     catalog,
     rng: gaugeRng,
     gauge: { zoneWidth: params.zoneWidth, drift: params.drift },
+    gaugeStepScale: options.gaugeStepScale ?? 1,
   });
 
   let clock = 0;
@@ -116,7 +122,7 @@ export function createSession(options) {
   }
 
   function spawnOrder() {
-    const order = factory.next(params, rail);
+    const order = script ? factory.fromSpec(/** @type {any} */ (script.shift())) : factory.next(params, rail);
     /** @type {RailOrder} */
     const railOrder = {
       ...order,
@@ -160,7 +166,8 @@ export function createSession(options) {
           applyOutcome("fail");
         }
       }
-      if (clock < durationMs && rail.length < params.maxConcurrent && clock >= nextArrivalAt) {
+      const canSpawn = !script || script.length > 0;
+      if (canSpawn && clock < durationMs && rail.length < params.maxConcurrent && clock >= nextArrivalAt) {
         spawnOrder();
       }
     }
@@ -252,7 +259,7 @@ export function createSession(options) {
     return true;
   }
 
-  /** @param {"time"|"quit"} [reason] */
+  /** @param {"time"|"quit"|"done"} [reason] */
   function end(reason = "quit") {
     if (ended) return;
     ended = true;
@@ -282,6 +289,7 @@ export function createSession(options) {
       machine: machine.snapshot(),
       cleaningMs,
       tips,
+      scriptRemaining: script ? script.length : null,
     };
   }
 

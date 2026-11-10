@@ -133,6 +133,30 @@ for (const [targetName, target] of Object.entries(TARGETS)) {
   }
 }
 
+test("práctica guiada: se completa siguiendo las indicaciones (archivo único, teléfono)", { timeout: 180000 }, async () => {
+  const { context, page, errors } = await openGame(TARGETS["archivo único"], VIEWPORTS.telefono);
+  try {
+    await page.click("#btn-practice");
+    await page.waitForFunction(() => window.BarraSepia.getState()?.mode === "practica");
+    for (let n = 1; n <= 2; n++) {
+      await page.waitForFunction((id) => window.BarraSepia.getState().orders.some((o) => o.id === id), n, { timeout: 30000 });
+      const order = await page.evaluate(() => window.BarraSepia.getState().orders[0]);
+      // La guía señala la tecla de la bebida pedida.
+      const step = await page.evaluate(() => window.BarraSepia.scene.practiceStepId);
+      assert.equal(step, "drink");
+      await brew(page, order);
+      await tap(page, `ticket:${order.id}`);
+    }
+    await page.waitForFunction(() => window.BarraSepia.screen === "practice-done", null, { timeout: 15000 });
+    // La práctica no se guarda en el historial.
+    await page.click("#btn-practice-start");
+    await page.waitForFunction(() => window.BarraSepia.getState()?.mode === "normal");
+    assert.deepEqual(errors, [], `errores de consola:\n${errors.join("\n")}`);
+  } finally {
+    await context.close();
+  }
+});
+
 test("archivo único: cumple el contrato del visor", () => {
   const html = readFileSync(join(ROOT, "dist/barra-sepia.html"), "utf8");
   assert.ok(html.slice(0, 8192).includes("<title>Barra Sepia</title>"));

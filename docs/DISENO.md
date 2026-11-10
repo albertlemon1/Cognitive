@@ -374,7 +374,19 @@ scripts/build.mjs        ← genera:
 | El bundler mínimo no soporta sintaxis nueva | Convenciones documentadas, validación estricta y prueba automática del bundle |
 | Dificultad mal calibrada | Tabla en un solo lugar, pruebas del controlador, y la telemetría permite recalibrar con datos reales |
 
-## 12. Fuera de la fase 1
+## 12. Práctica guiada y señales del manómetro (fase 1.1)
+
+- **Práctica guiada** (`src/core/tutorial.js`, `src/ui/coach.js`): dos comandas con guion (Cortado; Capuchino con azúcar), sin reloj de paciencia y con la extracción 1,8 veces más larga. No se guarda en el historial.
+  - Qué indicar se calcula en cada cuadro a partir del estado de la sesión (`practiceStep`), no como una secuencia fija: si el jugador elige otra bebida o activa un extra de más, la guía lo corrige.
+  - Una tarjeta en el riel da la instrucción y manos de guante blanco señalan el control (tecla, interruptor, palanca, manómetro y botón PRESIÓN, comanda).
+  - La primera vez, la pantalla de inicio propone la práctica como acción principal. Al completarla se guarda `progress.practiced` y aparece un resumen de los controles.
+- **Señales del manómetro** durante la extracción, en tres sitios con el mismo código:
+  - Manómetro: borde, halo y aguja turquesa en la zona; ladrillo fuera. En el centro, "EN ZONA", "PULSA ▲" o "SUELTA ▼".
+  - Botón PRESIÓN: mismo color y el texto "¡En zona!", "Pulsa: sube" o "Suelta: baja".
+  - Línea de estado de la consola con la instrucción completa.
+  - El texto da la misma información que el color, así que sirve también en modo daltónico.
+
+## 13. Fuera de la fase 1
 
 - Niveles Centro y Estación de tren (el formato de `levels` ya los admite).
 - Batería de evaluación previa y posterior.
@@ -382,7 +394,7 @@ scripts/build.mjs        ← genera:
 - Arte con imágenes o Spine; por ahora todo es vectorial por código.
 - Sincronización entre dispositivos.
 
-## 13. Decisiones tomadas fuera del prompt
+## 14. Decisiones tomadas fuera del prompt
 
 - **Pasos visibles pero automáticos.** El jugador elige bebida y modificadores; la máquina ejecuta los pasos sola. Así la carga cognitiva está en recordar y configurar, no en memorizar recetas.
 - **Regla de las trampas:** "el texto manda". El icono puede mentir; el texto de la comanda es la orden real. Se explica en la pantalla de inicio.
