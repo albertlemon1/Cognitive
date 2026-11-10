@@ -107,6 +107,8 @@ test("los parámetros se endurecen de forma monótona con el nivel", () => {
     assert.ok(cur.maxConcurrent >= 1 && cur.maxConcurrent <= 3);
   }
   assert.equal(paramsFor(1).exposureMs, null);
+  assert.equal(paramsFor(3).exposureMs, null);
+  assert.equal(paramsFor(4).exposureMs, 12000, "primer nivel con comandas volteadas: 12 s");
   assert.equal(paramsFor(8).maxConcurrent, 3);
 });
 
@@ -114,6 +116,7 @@ test("modo Calma: sin paciencia, máximo 2 comandas, más pausa y menos deriva",
   const normal = paramsFor(8);
   const calm = paramsFor(8, { calm: true });
   assert.equal(calm.patienceMs, null);
+  assert.equal(calm.exposureMs, null, "en Calma las comandas no se voltean");
   assert.equal(calm.maxConcurrent, 2);
   assert.equal(calm.arrivalGapMs, Math.round(normal.arrivalGapMs * 1.5));
   assert.ok(calm.drift < normal.drift);

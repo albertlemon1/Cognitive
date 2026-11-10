@@ -191,7 +191,7 @@ function template() {
     <p class="rule">Regla de la casa: manda el <strong>texto</strong> de la comanda, no el dibujo.</p>
     <p class="first-time" id="first-time">¿Primera vez? Empieza con la <strong>práctica guiada</strong>: dos comandas sin reloj, con indicaciones paso a paso.</p>
     <div class="options">
-      <label class="check"><input type="checkbox" id="start-calm"> Modo Calma <span class="hint">sin reloj de paciencia y con menos comandas</span></label>
+      <label class="check"><input type="checkbox" id="start-calm"> Modo Calma <span class="hint">sin reloj de paciencia, con menos comandas y sin comandas volteadas</span></label>
       <label class="select">Duración del turno
         <select id="start-minutes">${minutesOptions()}</select>
       </label>
