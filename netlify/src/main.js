@@ -248,6 +248,11 @@ async function boot() {
           onSessionEnd(session).catch((err) => overlay.showError(String(err && err.message ? err.message : err)));
         },
         onPauseRequest: () => overlay.show("pause"),
+        onToggleMusic: () => {
+          const on = !settingsStore.settings.musicOn;
+          applySettings({ musicOn: on });
+          announce(on ? "Música encendida." : "Música apagada.");
+        },
         onReady: (readyScene) => {
           scene = readyScene;
           game.canvas.setAttribute("tabindex", "0");

@@ -64,6 +64,7 @@ export class Overlay {
 
     const toggle = (id, key) => on(id, "change", (e) => this.callbacks.onSettings({ [key]: /** @type {HTMLInputElement} */ (e.target).checked }));
     toggle("#set-muted", "muted");
+    toggle("#set-musicon", "musicOn");
     toggle("#set-motion", "reducedMotion");
     toggle("#set-colorblind", "colorBlind");
     toggle("#set-largetext", "largeText");
@@ -84,6 +85,7 @@ export class Overlay {
       if (el && el[prop] !== value) el[prop] = value;
     };
     set("#set-muted", "checked", settings.muted);
+    set("#set-musicon", "checked", settings.musicOn);
     set("#set-motion", "checked", settings.reducedMotion);
     set("#set-colorblind", "checked", settings.colorBlind);
     set("#set-largetext", "checked", settings.largeText);
@@ -189,7 +191,7 @@ function template() {
     <p class="rule">Regla de la casa: manda el <strong>texto</strong> de la comanda, no el dibujo.</p>
     <p class="first-time" id="first-time">¿Primera vez? Empieza con la <strong>práctica guiada</strong>: dos comandas sin reloj, con indicaciones paso a paso.</p>
     <div class="options">
-      <label class="check"><input type="checkbox" id="start-calm"> Modo Calma <span class="hint">sin reloj de paciencia y con menos comandas</span></label>
+      <label class="check"><input type="checkbox" id="start-calm"> Modo Calma <span class="hint">sin reloj de paciencia, con menos comandas y sin comandas volteadas</span></label>
       <label class="select">Duración del turno
         <select id="start-minutes">${minutesOptions()}</select>
       </label>
@@ -216,7 +218,8 @@ function template() {
   <section class="card" data-screen="settings" hidden aria-labelledby="settings-title">
     <h2 id="settings-title">Ajustes</h2>
     <div class="settings">
-      <label class="range">Música <input type="range" id="set-music" min="0" max="100" step="5"></label>
+      <label class="check"><input type="checkbox" id="set-musicon"> Música de fondo</label>
+      <label class="range">Volumen de la música <input type="range" id="set-music" min="0" max="100" step="5"></label>
       <label class="range">Efectos <input type="range" id="set-sfx" min="0" max="100" step="5"></label>
       <label class="check"><input type="checkbox" id="set-muted"> Silenciar todo</label>
       <label class="check"><input type="checkbox" id="set-motion"> Movimiento reducido</label>
@@ -225,7 +228,7 @@ function template() {
       <label class="check"><input type="checkbox" id="set-calm"> Modo Calma</label>
       <label class="select">Duración del turno <select id="set-minutes">${minutesOptions()}</select></label>
     </div>
-    <p class="note">Teclado: 1–9, 0, - y = eligen bebida · Q W E R los extras · Enter prepara · Espacio mantiene la presión · A S D entregan a la comanda 1, 2 o 3 · L limpia · Esc pausa.</p>
+    <p class="note">Teclado: 1 a 6 eligen bebida · Q W E R los extras · Enter prepara · Espacio mantiene la presión · A S D entregan a la comanda 1, 2 o 3 · L toma un respiro · M enciende o apaga la música · Esc pausa.</p>
     <div class="actions">
       <button type="button" class="btn primary" id="btn-settings-back" data-autofocus>Volver</button>
     </div>

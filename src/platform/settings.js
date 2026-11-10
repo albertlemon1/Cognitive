@@ -6,6 +6,7 @@ const KEY = "barra-sepia:v1";
 /**
  * @typedef {Object} Settings
  * @property {number} musicVolume    0..1
+ * @property {boolean} musicOn       Música encendida (los efectos no dependen de esto).
  * @property {number} sfxVolume      0..1
  * @property {boolean} muted
  * @property {boolean} reducedMotion
@@ -33,6 +34,7 @@ function prefersReducedMotion() {
 export function defaultSettings() {
   return {
     musicVolume: 0.5,
+    musicOn: true,
     sfxVolume: 0.7,
     muted: false,
     reducedMotion: prefersReducedMotion(),
@@ -59,6 +61,7 @@ export function normalizeState(raw) {
   return {
     settings: {
       musicVolume: clamp01(s.musicVolume, d.musicVolume),
+      musicOn: typeof s.musicOn === "boolean" ? s.musicOn : d.musicOn,
       sfxVolume: clamp01(s.sfxVolume, d.sfxVolume),
       muted: typeof s.muted === "boolean" ? s.muted : d.muted,
       reducedMotion: typeof s.reducedMotion === "boolean" ? s.reducedMotion : d.reducedMotion,

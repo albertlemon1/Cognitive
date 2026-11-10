@@ -37,11 +37,11 @@ const TABLE = Object.freeze([
   { exposureMs: null, maxConcurrent: 1, zoneWidth: 0.4, distractorRate: 0.0, maxModifiers: 0, arrivalGapMs: 1500, patienceMs: 60000, drift: 0.3 },
   { exposureMs: null, maxConcurrent: 1, zoneWidth: 0.36, distractorRate: 0.05, maxModifiers: 1, arrivalGapMs: 1500, patienceMs: 55000, drift: 0.4 },
   { exposureMs: null, maxConcurrent: 2, zoneWidth: 0.33, distractorRate: 0.1, maxModifiers: 1, arrivalGapMs: 3000, patienceMs: 50000, drift: 0.5 },
-  { exposureMs: 9000, maxConcurrent: 2, zoneWidth: 0.3, distractorRate: 0.15, maxModifiers: 2, arrivalGapMs: 3000, patienceMs: 46000, drift: 0.6 },
-  { exposureMs: 7000, maxConcurrent: 2, zoneWidth: 0.27, distractorRate: 0.2, maxModifiers: 2, arrivalGapMs: 2800, patienceMs: 43000, drift: 0.7 },
-  { exposureMs: 6000, maxConcurrent: 3, zoneWidth: 0.24, distractorRate: 0.25, maxModifiers: 2, arrivalGapMs: 2600, patienceMs: 40000, drift: 0.8 },
-  { exposureMs: 5000, maxConcurrent: 3, zoneWidth: 0.21, distractorRate: 0.3, maxModifiers: 3, arrivalGapMs: 2400, patienceMs: 38000, drift: 0.9 },
-  { exposureMs: 4000, maxConcurrent: 3, zoneWidth: 0.18, distractorRate: 0.35, maxModifiers: 3, arrivalGapMs: 2200, patienceMs: 35000, drift: 1.0 },
+  { exposureMs: 12000, maxConcurrent: 2, zoneWidth: 0.3, distractorRate: 0.15, maxModifiers: 2, arrivalGapMs: 3000, patienceMs: 46000, drift: 0.6 },
+  { exposureMs: 9000, maxConcurrent: 2, zoneWidth: 0.27, distractorRate: 0.2, maxModifiers: 2, arrivalGapMs: 2800, patienceMs: 43000, drift: 0.7 },
+  { exposureMs: 7000, maxConcurrent: 3, zoneWidth: 0.24, distractorRate: 0.25, maxModifiers: 2, arrivalGapMs: 2600, patienceMs: 40000, drift: 0.8 },
+  { exposureMs: 5500, maxConcurrent: 3, zoneWidth: 0.21, distractorRate: 0.3, maxModifiers: 3, arrivalGapMs: 2400, patienceMs: 38000, drift: 0.9 },
+  { exposureMs: 4500, maxConcurrent: 3, zoneWidth: 0.18, distractorRate: 0.35, maxModifiers: 3, arrivalGapMs: 2200, patienceMs: 35000, drift: 1.0 },
 ]);
 
 export const MAX_LEVEL = TABLE.length;
@@ -114,6 +114,8 @@ export function paramsFor(level, options = {}) {
   const params = { level: lvl, ...row };
   if (options.calm) {
     params.patienceMs = null;
+    // En Calma las comandas no se voltean: se practica sin la carga de memoria.
+    params.exposureMs = null;
     params.maxConcurrent = Math.min(params.maxConcurrent, 2);
     params.arrivalGapMs = Math.round(params.arrivalGapMs * 1.5);
     params.drift = Math.round(params.drift * 0.7 * 100) / 100;

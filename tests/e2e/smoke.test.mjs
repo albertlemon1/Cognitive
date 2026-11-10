@@ -157,6 +157,28 @@ test("práctica guiada: se completa siguiendo las indicaciones (archivo único, 
   }
 });
 
+test("botón de música: apaga y enciende solo la música", { timeout: 120000 }, async () => {
+  const { context, page, errors } = await openGame(TARGETS.netlify, VIEWPORTS.escritorio);
+  try {
+    await page.click("#btn-start");
+    await page.waitForFunction(() => window.BarraSepia.scene.app.audio.playing);
+    const level = () => page.evaluate(() => window.BarraSepia.scene.app.audio.musicGain.gain.value);
+    assert.ok((await level()) > 0.1, "la música suena al empezar");
+    await tap(page, "music");
+    await page.waitForTimeout(400);
+    assert.equal(await page.evaluate(() => window.BarraSepia.scene.app.getSettings().musicOn), false);
+    assert.ok((await level()) < 0.01, "la música queda en silencio");
+    assert.ok((await page.evaluate(() => window.BarraSepia.scene.app.audio.sfxGain.gain.value)) > 0.1, "los efectos siguen sonando");
+    await page.keyboard.press("m");
+    await page.waitForTimeout(400);
+    assert.equal(await page.evaluate(() => window.BarraSepia.scene.app.getSettings().musicOn), true);
+    assert.ok((await level()) > 0.1);
+    assert.deepEqual(errors, [], `errores de consola:\n${errors.join("\n")}`);
+  } finally {
+    await context.close();
+  }
+});
+
 test("archivo único: cumple el contrato del visor", () => {
   const html = readFileSync(join(ROOT, "dist/barra-sepia.html"), "utf8");
   assert.ok(html.slice(0, 8192).includes("<title>Barra Sepia</title>"));

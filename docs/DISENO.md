@@ -180,13 +180,15 @@ Tabla de parámetros:
 | 1 | siempre visible | 1 | 0.40 | 0.00 | 0 | 1500 | 60000 | 0.30 |
 | 2 | siempre visible | 1 | 0.36 | 0.05 | 1 | 1500 | 55000 | 0.40 |
 | 3 | siempre visible | 2 | 0.33 | 0.10 | 1 | 3000 | 50000 | 0.50 |
-| 4 | 9000 | 2 | 0.30 | 0.15 | 2 | 3000 | 46000 | 0.60 |
-| 5 | 7000 | 2 | 0.27 | 0.20 | 2 | 2800 | 43000 | 0.70 |
-| 6 | 6000 | 3 | 0.24 | 0.25 | 2 | 2600 | 40000 | 0.80 |
-| 7 | 5000 | 3 | 0.21 | 0.30 | 3 | 2400 | 38000 | 0.90 |
-| 8 | 4000 | 3 | 0.18 | 0.35 | 3 | 2200 | 35000 | 1.00 |
+| 4 | 12000 | 2 | 0.30 | 0.15 | 2 | 3000 | 46000 | 0.60 |
+| 5 | 9000 | 2 | 0.27 | 0.20 | 2 | 2800 | 43000 | 0.70 |
+| 6 | 7000 | 3 | 0.24 | 0.25 | 2 | 2600 | 40000 | 0.80 |
+| 7 | 5500 | 3 | 0.21 | 0.30 | 3 | 2400 | 38000 | 0.90 |
+| 8 | 4500 | 3 | 0.18 | 0.35 | 3 | 2200 | 35000 | 1.00 |
 
-Modo Calma: sin paciencia (no hay comandas perdidas), máximo 2 simultáneas, pausa entre llegadas ×1.5, deriva ×0.7.
+Modo Calma: sin paciencia (no hay comandas perdidas), sin comandas volteadas, máximo 2 simultáneas, pausa entre llegadas ×1.5, deriva ×0.7.
+
+Tiempos de exposición (fase 1.4): más generosos en los primeros niveles en que se voltean (12 s en el nivel 4, antes 9 s), para que la memoria entre de forma gradual.
 
 ### 5.6 `core/session.js`
 
@@ -400,7 +402,17 @@ scripts/build.mjs        ← genera:
   - Al entregarla vuela en arco hasta la comanda; si no coincide, se vuelca y cae.
 - Con movimiento reducido, la taza aparece en su sitio sin caer ni rebotar y no hay salpicaduras ni vuelos.
 
-## 14. Fuera de la fase 1
+## 14. Respiro y música (fase 1.3)
+
+- El botón "Limpiar" pasa a llamarse **"Respiro 3 s"** y su icono es un reloj de arena que se vacía mientras dura. Hace lo mismo: congela el riel 3 segundos, sin penalización.
+- **Música:** sonaba demasiado baja y casi toda en graves (contrabajo bajo 230 Hz), que los altavoces de teléfonos y portátiles apenas reproducen.
+  - Se subió el volumen.
+  - El contrabajo sube una octava, con onda de sierra filtrada para tener más armónicos.
+  - Se agregó una frase de vibráfono en registro medio.
+  - La programación de notas mira 350 ms por delante (antes 120 ms), para que no se corte si el dispositivo va lento.
+- **Interruptor de música:** botón con una corchea en la barra superior, tecla M y casilla en Ajustes. Solo apaga la música; los efectos siguen sonando. La preferencia se guarda (`settings.musicOn`).
+
+## 15. Fuera de la fase 1
 
 - Niveles Centro y Estación de tren (el formato de `levels` ya los admite).
 - Batería de evaluación previa y posterior.
@@ -408,7 +420,7 @@ scripts/build.mjs        ← genera:
 - Arte con imágenes o Spine; por ahora todo es vectorial por código.
 - Sincronización entre dispositivos.
 
-## 15. Decisiones tomadas fuera del prompt
+## 16. Decisiones tomadas fuera del prompt
 
 - **Pasos visibles pero automáticos.** El jugador elige bebida y modificadores; la máquina ejecuta los pasos sola. Así la carga cognitiva está en recordar y configurar, no en memorizar recetas.
 - **Regla de las trampas:** "el texto manda". El icono puede mentir; el texto de la comanda es la orden real. Se explica en la pantalla de inicio.

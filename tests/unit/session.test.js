@@ -86,10 +86,11 @@ test("omisión: la comanda se pierde al agotar la paciencia", () => {
   assert.ok(!s.getState().orders.some((o) => o.id === order.id));
 });
 
-test("modo Calma: sin omisiones", () => {
+test("modo Calma: sin omisiones ni comandas volteadas", () => {
   const s = createSession({ catalog, seed: 4, mode: "calma", startLevel: 8, durationMs: 600000 });
   advance(s, 300000, 100);
   assert.equal(s.log.filter((e) => e.type === "order_missed").length, 0);
+  assert.equal(s.log.filter((e) => e.type === "order_hidden").length, 0, "en Calma no se voltean");
   assert.ok(s.getState().orders.length <= 2);
 });
 

@@ -196,9 +196,9 @@ export class ControlsView {
     big("pressure", 96, "PRESIÓN", this.pressureSubDefault, (r) => r.w - 104);
 
     const rc = this.rects.get("clean");
-    const clean = add("clean:label", this.scene.add.text(rc.x + rc.w / 2, rc.y + rc.h - 12, this.options.keyHints ? "Limpiar · L" : "Limpiar", textStyle(16 * k, { bold: true, align: "center" })));
+    const clean = add("clean:label", this.scene.add.text(rc.x + rc.w / 2, rc.y + rc.h - 12, this.options.keyHints ? "Respiro 3 s · L" : "Respiro 3 s", textStyle(18 * k, { bold: true, align: "center" })));
     clean.setOrigin(0.5, 1);
-    fitText(clean, rc.w - 12, 24, 16 * k, 9);
+    fitText(clean, rc.w - 12, 28, (portrait ? 21 : 18) * k, 10);
     this.textsKey = `${this.mode}|${JSON.stringify(this.options)}`;
   }
 
@@ -364,16 +364,25 @@ export class ControlsView {
     drawPanel(g, r.x, r.y, r.w, r.h, { fill: enabled ? COLORS.cream : COLORS.paperShade, border: COLORS.brassDark, radius: 14 });
     const cx = r.x + r.w / 2;
     const cy = r.y + r.h * 0.38;
-    // Trapo a cuadros.
-    g.fillStyle(enabled ? COLORS.white : COLORS.paperShade, 1);
-    g.fillRoundedRect(cx - 20, cy - 14, 40, 28, 6);
-    g.fillStyle(enabled ? COLORS.brick : COLORS.chromeDark, 0.8);
-    for (let i = 0; i < 3; i++) {
-      g.fillRect(cx - 20 + i * 14, cy - 14, 6, 28);
-      g.fillRect(cx - 20, cy - 14 + i * 10, 40, 4);
-    }
-    g.lineStyle(2, COLORS.ink, 1);
-    g.strokeRoundedRect(cx - 20, cy - 14, 40, 28, 6);
+    // Reloj de arena: un respiro de 3 segundos.
+    const ink = enabled ? COLORS.ink : COLORS.chromeDark;
+    const sand = enabled ? COLORS.mustard : COLORS.paperEdge;
+    const f = view.cleaningFraction;
+    g.fillStyle(COLORS.brassDark, 1);
+    g.fillRoundedRect(cx - 16, cy - 20, 32, 5, 2);
+    g.fillRoundedRect(cx - 16, cy + 15, 32, 5, 2);
+    g.fillStyle(COLORS.white, 0.85);
+    g.fillTriangle(cx - 12, cy - 15, cx + 12, cy - 15, cx, cy);
+    g.fillTriangle(cx - 12, cy + 15, cx + 12, cy + 15, cx, cy);
+    // La arena baja mientras dura el respiro.
+    const top = 1 - f;
+    g.fillStyle(sand, 1);
+    if (top > 0.02) g.fillTriangle(cx - 12 * top, cy - 15 * top, cx + 12 * top, cy - 15 * top, cx, cy);
+    const bottom = f > 0 ? f : 0.45;
+    g.fillTriangle(cx - 12, cy + 15, cx + 12, cy + 15, cx, cy + 15 - 15 * bottom);
+    g.lineStyle(2, ink, 1);
+    g.strokeTriangle(cx - 12, cy - 15, cx + 12, cy - 15, cx, cy);
+    g.strokeTriangle(cx - 12, cy + 15, cx + 12, cy + 15, cx, cy);
     if (view.cleaningFraction > 0) {
       g.lineStyle(5, COLORS.teal, 1);
       g.beginPath();

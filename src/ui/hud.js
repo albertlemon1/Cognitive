@@ -6,8 +6,8 @@ import { textStyle, fitText } from "./draw.js";
 export class HudView {
   /**
    * @param {Phaser.Scene} scene
-   * @param {{ onPause: () => void }} callbacks
-   * @param {{ reducedMotion: boolean, largeText: boolean }} options
+   * @param {{ onPause: () => void, onMusic: () => void }} callbacks
+   * @param {{ reducedMotion: boolean, largeText: boolean, musicOn?: boolean }} options
    */
   constructor(scene, callbacks, options) {
     this.scene = scene;
@@ -21,7 +21,12 @@ export class HudView {
     this.pauseArt = scene.add.graphics();
     this.pauseZone = scene.add.zone(0, 0, 56, 48).setOrigin(0, 0).setInteractive({ useHandCursor: true });
     this.pauseZone.on("pointerdown", () => callbacks.onPause());
-    this.root.add([this.bg, this.sign, this.info, this.pauseArt, this.pauseZone]);
+    // Botón de música (encender / apagar), junto a la pausa.
+    this.musicOn = options.musicOn !== false;
+    this.musicArt = scene.add.graphics();
+    this.musicZone = scene.add.zone(0, 0, 56, 48).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+    this.musicZone.on("pointerdown", () => callbacks.onMusic());
+    this.root.add([this.bg, this.sign, this.info, this.pauseArt, this.pauseZone, this.musicArt, this.musicZone]);
     this.width = 1280;
     this.height = 60;
     this.lastInfo = "";
@@ -63,8 +68,14 @@ export class HudView {
     p.fillRoundedRect(px + size * 0.32, py + size * 0.28, size * 0.12, size * 0.44, 2);
     p.fillRoundedRect(px + size * 0.56, py + size * 0.28, size * 0.12, size * 0.44, 2);
 
-    this.info.setPosition(px - 16, height / 2);
-    this.infoMaxW = px - 16 - (this.sign.x + this.sign.width + 24);
+    const mx = px - size - 12;
+    this.musicZone.setPosition(mx, py);
+    this.musicZone.setSize(size, size);
+    this.musicBox = { x: mx, y: py, size };
+    this.drawMusic();
+
+    this.info.setPosition(mx - 16, height / 2);
+    this.infoMaxW = mx - 16 - (this.sign.x + this.sign.width + 24);
     this.lastInfo = "";
   }
 
@@ -96,6 +107,41 @@ export class HudView {
       this.info.setText(text);
       fitText(this.info, Math.max(80, this.infoMaxW ?? 400), this.height * 0.5, Math.min(22, this.height * 0.4) * (this.options.largeText ? 1.1 : 1), 10);
     }
+  }
+
+  /** @param {boolean} on */
+  setMusicOn(on) {
+    if (this.musicOn === on) return;
+    this.musicOn = on;
+    this.drawMusic();
+  }
+
+  drawMusic() {
+    if (!this.musicBox) return;
+    const { x, y, size } = this.musicBox;
+    const g = this.musicArt;
+    const cx = x + size / 2;
+    const cy = y + size / 2;
+    g.clear();
+    g.fillStyle(COLORS.brassDark, 1);
+    g.fillCircle(cx, cy + 2, size / 2);
+    g.fillStyle(this.musicOn ? COLORS.brass : COLORS.chromeDark, 1);
+    g.fillCircle(cx, cy, size / 2);
+    // Corchea.
+    const s = size / 52;
+    g.fillStyle(COLORS.ink, 1);
+    g.fillEllipse(cx - 5 * s, cy + 9 * s, 13 * s, 10 * s);
+    g.fillRect(cx + 0.5 * s, cy - 13 * s, 3 * s, 22 * s);
+    g.fillTriangle(cx + 3 * s, cy - 13 * s, cx + 3 * s, cy - 3 * s, cx + 12 * s, cy - 4 * s);
+    if (!this.musicOn) {
+      // Tachada: música apagada.
+      g.lineStyle(4 * s, COLORS.brick, 1);
+      g.lineBetween(cx - 14 * s, cy + 14 * s, cx + 14 * s, cy - 14 * s);
+    }
+  }
+
+  musicCenter() {
+    return { x: this.musicZone.x + this.musicZone.width / 2, y: this.musicZone.y + this.musicZone.height / 2 };
   }
 
   pauseCenter() {

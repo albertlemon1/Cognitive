@@ -9,6 +9,19 @@ const CHORDS = [
   { walk: [50, 54, 57, 49], chord: [54, 57, 60, 62] }, // D7
 ];
 
+// Frase del vibráfono: por cada medio compás, qué nota del acorde suena en cada tiempo
+// (0–3 = notas del acorde, 4+ = octava arriba, null = silencio).
+const MELODY = [
+  [2, null, 3, null],
+  [4, 3, null, 2],
+  [1, null, 2, 3],
+  [null, 4, 3, null],
+  [3, null, 1, null],
+  [2, 3, 4, null],
+  [5, null, 4, 2],
+  [null, null, 1, null],
+];
+
 const midiToHz = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
 export class AudioEngine {
@@ -18,7 +31,7 @@ export class AudioEngine {
     this.master = null;
     this.musicGain = null;
     this.sfxGain = null;
-    this.settings = { musicVolume: 0.5, sfxVolume: 0.7, muted: false };
+    this.settings = { musicVolume: 0.5, sfxVolume: 0.7, muted: false, musicOn: true };
     this.playing = false;
     this.tempo = 96;
     this.targetTempo = 96;
@@ -61,13 +74,14 @@ export class AudioEngine {
     return true;
   }
 
-  /** @param {{ musicVolume: number, sfxVolume: number, muted: boolean }} settings */
+  /** @param {{ musicVolume: number, sfxVolume: number, muted: boolean, musicOn?: boolean }} settings */
   applySettings(settings) {
     this.settings = { ...this.settings, ...settings };
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
     this.master.gain.setTargetAtTime(this.settings.muted ? 0 : 1, now, 0.05);
-    this.musicGain.gain.setTargetAtTime(this.settings.musicVolume * 0.32, now, 0.05);
+    const music = this.settings.musicOn === false ? 0 : this.settings.musicVolume * 0.75;
+    this.musicGain.gain.setTargetAtTime(music, now, 0.05);
     this.sfxGain.gain.setTargetAtTime(this.settings.sfxVolume * 0.8, now, 0.02);
   }
 
@@ -76,7 +90,7 @@ export class AudioEngine {
     this.playing = true;
     this.nextBeatTime = this.ctx.currentTime + 0.1;
     this.beat = 0;
-    this.timer = setInterval(() => this.schedule(), 25);
+    this.timer = setInterval(() => this.schedule(), 50);
   }
 
   stopMusic() {
@@ -102,8 +116,8 @@ export class AudioEngine {
     if (!this.ctx || !this.playing) return;
     const ctx = this.ctx;
     // Si la pestaña estuvo dormida, no recuperar compases perdidos.
-    if (this.nextBeatTime < ctx.currentTime - 0.2) this.nextBeatTime = ctx.currentTime + 0.05;
-    while (this.nextBeatTime < ctx.currentTime + 0.12) {
+    if (this.nextBeatTime < ctx.currentTime - 0.5) this.nextBeatTime = ctx.currentTime + 0.05;
+    while (this.nextBeatTime < ctx.currentTime + 0.35) {
       this.playBeat(this.beat, this.nextBeatTime);
       this.tempo += (this.targetTempo - this.tempo) * 0.05;
       this.nextBeatTime += 60 / this.tempo;
@@ -118,12 +132,21 @@ export class AudioEngine {
     const beatLen = 60 / this.tempo;
     const swing = beatLen * (2 / 3);
 
-    this.bass(midiToHz(chord.walk[pos]), t, beatLen * 0.9);
+    // Contrabajo una octava arriba: se oye también en altavoces de teléfono.
+    this.bass(midiToHz(chord.walk[pos] + 12), t, beatLen * 0.9);
     // Platillo con swing: 1, 2-y, 3, 4-y.
     this.ride(t, pos % 2 === 0 ? 0.5 : 0.35);
     if (pos % 2 === 1) this.ride(t + swing, 0.25);
     // Acordes en 2 y 4 (comping suave).
     if (pos === 1 || pos === 3) this.chord(chord.chord.map(midiToHz), t, beatLen * 0.45);
+    // Vibráfono: frase de 8 compases sobre las notas del acorde, con swing.
+    const phrase = MELODY[Math.floor(beat / 2) % MELODY.length];
+    const step = beat % 2;
+    const note = phrase[pos];
+    if (note != null) {
+      const midi = chord.chord[note % 4] + 12 + (note >= 4 ? 12 : 0);
+      this.vibes(midiToHz(midi), t + (step && pos % 2 ? swing * 0.5 : 0), beatLen * 1.4);
+    }
     // Crujido de disco.
     if (Math.random() < 0.6) this.crackle(t + Math.random() * beatLen);
   }
@@ -131,11 +154,12 @@ export class AudioEngine {
   bass(freq, t, dur) {
     const ctx = this.ctx;
     const osc = ctx.createOscillator();
-    osc.type = "triangle";
+    osc.type = "sawtooth";
     osc.frequency.value = freq;
     const filter = ctx.createBiquadFilter();
     filter.type = "lowpass";
-    filter.frequency.value = 600;
+    filter.frequency.value = 900;
+    filter.Q.value = 2;
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0.0001, t);
     gain.gain.exponentialRampToValueAtTime(0.5, t + 0.015);
@@ -163,16 +187,45 @@ export class AudioEngine {
     const ctx = this.ctx;
     for (const f of freqs) {
       const osc = ctx.createOscillator();
-      osc.type = "sine";
+      osc.type = "triangle";
       osc.frequency.value = f;
       const gain = ctx.createGain();
       gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(0.06, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.08, t + 0.02);
       gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
       osc.connect(gain).connect(this.musicGain);
       osc.start(t);
       osc.stop(t + dur + 0.05);
     }
+  }
+
+  /** Nota de vibráfono: seno con un parcial agudo y trémolo suave. */
+  vibes(freq, t, dur) {
+    const ctx = this.ctx;
+    const out = ctx.createGain();
+    out.gain.setValueAtTime(0.0001, t);
+    out.gain.exponentialRampToValueAtTime(0.22, t + 0.01);
+    out.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    const tremolo = ctx.createGain();
+    tremolo.gain.value = 0.85;
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 5.5;
+    const depth = ctx.createGain();
+    depth.gain.value = 0.15;
+    lfo.connect(depth).connect(tremolo.gain);
+    for (const [mult, amp] of [[1, 1], [4, 0.12]]) {
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.value = freq * mult;
+      const g = ctx.createGain();
+      g.gain.value = amp;
+      osc.connect(g).connect(out);
+      osc.start(t);
+      osc.stop(t + dur + 0.05);
+    }
+    out.connect(tremolo).connect(this.musicGain);
+    lfo.start(t);
+    lfo.stop(t + dur + 0.05);
   }
 
   crackle(t) {
