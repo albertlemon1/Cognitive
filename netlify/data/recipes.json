@@ -12,23 +12,23 @@
     "cream": "#fbf5e6"
   },
   "steps": {
-    "moler":        { "label": "Moler",        "durationMs": 900,  "visual": "grind" },
-    "moler_descaf": { "label": "Moler descaf", "durationMs": 900,  "visual": "grind", "variant": "decaf" },
-    "extraer":      { "label": "Extraer",      "durationMs": 3600, "visual": "pour",  "gauge": true, "fill": { "name": "espresso", "amount": 0.3 } },
-    "agua":         { "label": "Agua",         "durationMs": 800,  "visual": "water", "fill": { "name": "americano", "amount": 0.4 } },
-    "leche":        { "label": "Leche",        "durationMs": 1100, "visual": "steam", "fill": { "name": "milk", "amount": 0.35 } },
-    "leche_avena":  { "label": "Avena",        "durationMs": 1100, "visual": "steam", "fill": { "name": "oat", "amount": 0.35 } },
-    "espuma":       { "label": "Espuma",       "durationMs": 900,  "visual": "steam", "fill": { "name": "foam", "amount": 0.15 } },
-    "espuma_avena": { "label": "Espuma avena", "durationMs": 900,  "visual": "steam", "fill": { "name": "oatfoam", "amount": 0.15 } },
-    "chocolate":    { "label": "Chocolate",    "durationMs": 700,  "visual": "syrup", "fill": { "name": "chocolate", "amount": 0.15 } },
-    "condensada":   { "label": "Condensada",   "durationMs": 700,  "visual": "syrup", "fill": { "name": "condensed", "amount": 0.2 } },
-    "nata":         { "label": "Nata",         "durationMs": 800,  "visual": "cream", "fill": { "name": "cream", "amount": 0.18 } },
-    "cacao":        { "label": "Cacao",        "durationMs": 700,  "visual": "dust",  "color": "#5a3420" },
-    "canela":       { "label": "Canela",       "durationMs": 700,  "visual": "dust",  "color": "#9a5b2c" },
-    "hielo":        { "label": "Hielo",        "durationMs": 700,  "visual": "ice" },
-    "decorar":      { "label": "Decorar",      "durationMs": 800,  "visual": "art" },
-    "azucar":       { "label": "Azúcar",       "durationMs": 600,  "visual": "sugar" },
-    "tapa":         { "label": "Tapa",         "durationMs": 600,  "visual": "lid" }
+    "moler":        { "label":  "Moler", "durationMs":  900, "visual":  "grind" },
+    "moler_descaf": { "label":  "Moler descaf", "durationMs":  900, "visual":  "grind", "variant":  "decaf" },
+    "extraer":      { "label":  "Extraer", "durationMs":  3600, "visual":  "pour", "gauge":  true, "fill":  { "name":  "espresso", "amount":  0.3 } },
+    "agua":         { "label":  "Agua", "durationMs":  800, "visual":  "water", "fill":  { "name":  "americano", "amount":  0.4 } },
+    "leche":        { "label":  "Leche", "durationMs":  1100, "visual":  "steam", "fill":  { "name":  "milk", "amount":  0.35 } },
+    "leche_avena":  { "label":  "Avena", "durationMs":  1100, "visual":  "steam", "fill":  { "name":  "oat", "amount":  0.35 } },
+    "espuma":       { "label":  "Espuma", "durationMs":  900, "visual":  "steam", "fill":  { "name":  "foam", "amount":  0.15 } },
+    "espuma_avena": { "label":  "Espuma avena", "durationMs":  900, "visual":  "steam", "fill":  { "name":  "oatfoam", "amount":  0.15 } },
+    "chocolate":    { "label":  "Chocolate", "durationMs":  700, "visual":  "syrup", "fill":  { "name":  "chocolate", "amount":  0.15 } },
+    "condensada":   { "label":  "Condensada", "durationMs":  700, "visual":  "syrup", "fill":  { "name":  "condensed", "amount":  0.2 } },
+    "nata":         { "label":  "Nata", "durationMs":  800, "visual":  "cream", "fill":  { "name":  "cream", "amount":  0.18 } },
+    "cacao":        { "label":  "Cacao", "durationMs":  700, "visual":  "dust", "color":  "#5a3420" },
+    "canela":       { "label":  "Canela", "durationMs":  700, "visual":  "dust", "color":  "#9a5b2c" },
+    "hielo":        { "label":  "Hielo", "durationMs":  700, "visual":  "ice" },
+    "decorar":      { "label":  "Decorar", "durationMs":  800, "visual":  "art" },
+    "azucar":       { "label":  "Azúcar", "durationMs":  600, "visual":  "sugar" },
+    "tapa":         { "label":  "Tapa", "durationMs":  600, "visual":  "lid" }
   },
   "modifiers": {
     "azucar": {
@@ -36,7 +36,12 @@
       "short": "Azúcar",
       "icon": "cube",
       "key": "Q",
-      "effects": [{ "type": "appendStep", "step": "azucar" }]
+      "effects": [
+        {
+          "type": "appendStep",
+          "step": "azucar"
+        }
+      ]
     },
     "doble": {
       "label": "Doble carga",
@@ -44,9 +49,24 @@
       "icon": "double",
       "key": "W",
       "effects": [
-        { "type": "scaleStep", "step": "moler", "factor": 1.5, "labelSuffix": " ×2" },
-        { "type": "scaleStep", "step": "moler_descaf", "factor": 1.5, "labelSuffix": " ×2" },
-        { "type": "scaleStep", "step": "extraer", "factor": 1.4, "labelSuffix": " ×2" }
+        {
+          "type": "scaleStep",
+          "step": "moler",
+          "factor": 1.5,
+          "labelSuffix": " ×2"
+        },
+        {
+          "type": "scaleStep",
+          "step": "moler_descaf",
+          "factor": 1.5,
+          "labelSuffix": " ×2"
+        },
+        {
+          "type": "scaleStep",
+          "step": "extraer",
+          "factor": 1.4,
+          "labelSuffix": " ×2"
+        }
       ]
     },
     "avena": {
@@ -54,10 +74,21 @@
       "short": "Avena",
       "icon": "oat",
       "key": "E",
-      "requiresAnyStep": ["leche", "espuma"],
+      "requiresAnyStep": [
+        "leche",
+        "espuma"
+      ],
       "effects": [
-        { "type": "replaceStep", "from": "leche", "to": "leche_avena" },
-        { "type": "replaceStep", "from": "espuma", "to": "espuma_avena" }
+        {
+          "type": "replaceStep",
+          "from": "leche",
+          "to": "leche_avena"
+        },
+        {
+          "type": "replaceStep",
+          "from": "espuma",
+          "to": "espuma_avena"
+        }
       ]
     },
     "llevar": {
@@ -65,69 +96,123 @@
       "short": "Llevar",
       "icon": "lid",
       "key": "R",
-      "effects": [{ "type": "appendStep", "step": "tapa" }]
+      "effects": [
+        {
+          "type": "appendStep",
+          "step": "tapa"
+        }
+      ]
     }
   },
   "drinks": {
     "espresso": {
-      "label": "Espresso", "family": "solo",
-      "steps": ["moler", "extraer"],
-      "icon": { "vessel": "demitasse", "layers": ["espresso"], "topping": null, "mark": null }
+      "label": "Espresso",
+      "family": "solo",
+      "steps": [
+        "moler",
+        "extraer"
+      ],
+      "icon": {
+        "vessel": "demitasse",
+        "layers": [
+          "espresso"
+        ],
+        "topping": null,
+        "mark": null
+      }
     },
     "americano": {
-      "label": "Americano", "family": "solo",
-      "steps": ["moler", "extraer", "agua"],
-      "icon": { "vessel": "cup", "layers": ["americano", "americano"], "topping": null, "mark": null }
+      "label": "Americano",
+      "family": "solo",
+      "steps": [
+        "moler",
+        "extraer",
+        "agua"
+      ],
+      "icon": {
+        "vessel": "cup",
+        "layers": [
+          "americano",
+          "americano"
+        ],
+        "topping": null,
+        "mark": null
+      }
     },
     "descafeinado": {
-      "label": "Descafeinado", "family": "solo",
-      "steps": ["moler_descaf", "extraer"],
-      "icon": { "vessel": "demitasse", "layers": ["espresso"], "topping": null, "mark": "decaf" }
+      "label": "Descafeinado",
+      "family": "solo",
+      "steps": [
+        "moler_descaf",
+        "extraer"
+      ],
+      "icon": {
+        "vessel": "demitasse",
+        "layers": [
+          "espresso"
+        ],
+        "topping": null,
+        "mark": "decaf"
+      }
     },
     "cortado": {
-      "label": "Cortado", "family": "leche",
-      "steps": ["moler", "extraer", "leche"],
-      "icon": { "vessel": "glass", "layers": ["espresso", "milk"], "topping": null, "mark": null }
-    },
-    "macchiato": {
-      "label": "Macchiato", "family": "leche",
-      "steps": ["moler", "extraer", "espuma"],
-      "icon": { "vessel": "demitasse", "layers": ["espresso", "foam"], "topping": null, "mark": null }
+      "label": "Cortado",
+      "family": "leche",
+      "steps": [
+        "moler",
+        "extraer",
+        "leche"
+      ],
+      "icon": {
+        "vessel": "glass",
+        "layers": [
+          "espresso",
+          "milk"
+        ],
+        "topping": null,
+        "mark": null
+      }
     },
     "capuchino": {
-      "label": "Capuchino", "family": "leche",
-      "steps": ["moler", "extraer", "leche", "espuma", "cacao"],
-      "icon": { "vessel": "cup", "layers": ["espresso", "milk", "foam"], "topping": "dust", "mark": null }
+      "label": "Capuchino",
+      "family": "leche",
+      "steps": [
+        "moler",
+        "extraer",
+        "leche",
+        "espuma",
+        "cacao"
+      ],
+      "icon": {
+        "vessel": "cup",
+        "layers": [
+          "espresso",
+          "milk",
+          "foam"
+        ],
+        "topping": "dust",
+        "mark": null
+      }
     },
     "latte": {
-      "label": "Latte", "family": "leche",
-      "steps": ["moler", "extraer", "leche", "decorar"],
-      "icon": { "vessel": "tall", "layers": ["espresso", "milk", "milk"], "topping": "heart", "mark": null }
-    },
-    "moka": {
-      "label": "Moka", "family": "dulce",
-      "steps": ["chocolate", "moler", "extraer", "leche"],
-      "icon": { "vessel": "cup", "layers": ["chocolate", "espresso", "milk"], "topping": null, "mark": null }
-    },
-    "bombon": {
-      "label": "Bombón", "family": "dulce",
-      "steps": ["condensada", "moler", "extraer"],
-      "icon": { "vessel": "glass", "layers": ["condensed", "espresso"], "topping": null, "mark": null }
-    },
-    "vienes": {
-      "label": "Vienés", "family": "dulce",
-      "steps": ["moler", "extraer", "nata"],
-      "icon": { "vessel": "cup", "layers": ["espresso", "espresso"], "topping": "dome", "mark": null }
-    },
-    "helado": {
-      "label": "Café helado", "family": "especial",
-      "steps": ["hielo", "moler", "extraer"],
-      "icon": { "vessel": "tall", "layers": ["espresso"], "topping": "ice", "mark": null }
-    },
-    "olla": {
-      "label": "Café de olla", "family": "especial",
-      "steps": ["canela", "moler", "extraer"],
-      "icon": { "vessel": "jar", "layers": ["americano", "americano"], "topping": "stick", "mark": null }
+      "label": "Latte",
+      "family": "leche",
+      "steps": [
+        "moler",
+        "extraer",
+        "leche",
+        "decorar"
+      ],
+      "icon": {
+        "vessel": "tall",
+        "layers": [
+          "espresso",
+          "milk",
+          "milk"
+        ],
+        "topping": "heart",
+        "mark": null
+      }
     }
   },
   "levels": {
@@ -136,11 +221,19 @@
       "description": "Una cafetería de esquina. Órdenes sencillas para empezar el día.",
       "startLevel": 1,
       "drinkWeights": {
-        "espresso": 3, "americano": 3, "cortado": 3, "capuchino": 3,
-        "latte": 2, "macchiato": 2, "descafeinado": 2, "moka": 2,
-        "bombon": 1, "vienes": 1, "helado": 1, "olla": 1
+        "espresso": 3,
+        "americano": 3,
+        "descafeinado": 2,
+        "cortado": 3,
+        "capuchino": 3,
+        "latte": 2
       },
-      "modifierWeights": { "azucar": 3, "doble": 2, "avena": 2, "llevar": 3 }
+      "modifierWeights": {
+        "azucar": 3,
+        "doble": 2,
+        "avena": 2,
+        "llevar": 3
+      }
     }
   }
 }

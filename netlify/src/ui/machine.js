@@ -7,13 +7,14 @@ import { drawCup, drawModifierIcon, iconSpec, fitText, textStyle } from "./draw.
 import { gaugeZone } from "../core/gauge.js";
 
 export const MACHINE_W = 600;
-export const MACHINE_H = 520;
+export const MACHINE_H = 590;
 
 const CX = 300;
-const GAUGE = { x: 300, y: 112, r: 54 };
+const GAUGE = { x: 300, y: 104, r: 64 };
 const GAUGE_START = (-215 * Math.PI) / 180;
 const GAUGE_SWEEP = (250 * Math.PI) / 180;
-const CUP = { x: 300, base: 458, size: 74 };
+// La taza es grande: es donde se ve la bebida servirse.
+const CUP = { x: 300, base: 524, size: 125 };
 const EYES = [{ x: 252, y: 200 }, { x: 348, y: 200 }];
 const LAMPS_Y = 336;
 const SPOUT = { x: 300, y: 392 };
@@ -63,12 +64,22 @@ export class MachineView {
     this.plaque = scene.add.graphics();
     this.lamps = scene.add.graphics();
     this.stream = scene.add.graphics();
+    // La taza vive en su propio contenedor, con el origen en su base: así puede caer,
+    // aplastarse al aterrizar y rebotar sin recalcular su dibujo.
+    this.cupBox = scene.add.container(CUP.x, CUP.base);
     this.cup = scene.add.graphics();
+    this.cupFx = scene.add.graphics();
+    this.cupBox.add([this.cup, this.cupFx]);
     this.fx = scene.add.graphics();
+    this.cupPhase = "idle";
+    this.cupDropMs = 0;
+    this.cupOffsetY = 0;
+    /** @type {import("./draw.js").CupSpec|null} */
+    this.cupSpec = null;
     this.arms = scene.add.graphics();
 
     this.plaqueText = scene.add.text(CX, 268, "", textStyle(22, { font: FONTS.type, color: CSS.ink, align: "center" })).setOrigin(0.5);
-    this.gaugeLabel = scene.add.text(GAUGE.x, GAUGE.y + 24, "PRESIÓN", textStyle(11, { font: FONTS.body, color: CSS.ink, bold: true, align: "center" })).setOrigin(0.5);
+    this.gaugeLabel = scene.add.text(GAUGE.x, GAUGE.y + GAUGE.r * 0.38, "PRESIÓN", textStyle(13, { font: FONTS.body, color: CSS.ink, bold: true, align: "center" })).setOrigin(0.5);
 
     this.body.add([
       this.arms,
@@ -81,8 +92,9 @@ export class MachineView {
       this.plaque,
       this.plaqueText,
       this.lamps,
+      // El chorro va delante de la taza: la taza se dibuja en corte, con el líquido visible.
+      this.cupBox,
       this.stream,
-      this.cup,
       this.fx,
     ]);
     this.crank.setPosition(132, 98);
@@ -113,22 +125,22 @@ export class MachineView {
 
     // Remate de latón.
     g.fillStyle(COLORS.brassDark, 1);
-    g.fillRect(CX - 8, 36, 16, 26);
-    g.fillCircle(CX, 34, 15);
+    g.fillRect(CX - 8, 22, 16, 26);
+    g.fillCircle(CX, 20, 15);
     g.fillStyle(COLORS.brass, 1);
-    g.fillCircle(CX - 3, 31, 11);
+    g.fillCircle(CX - 3, 17, 11);
     g.fillStyle(COLORS.brassLight, 1);
-    g.fillCircle(CX - 6, 27, 4);
+    g.fillCircle(CX - 6, 13, 4);
 
     // Cuerpo esmaltado.
     g.fillStyle(COLORS.black, 0.3);
-    g.fillRoundedRect(136, 150, 340, 334, 34);
+    g.fillRoundedRect(136, 150, 340, 400, 34);
     g.fillStyle(COLORS.tealDark, 1);
-    g.fillRoundedRect(128, 140, 344, 338, 34);
+    g.fillRoundedRect(128, 140, 344, 404, 34);
     g.fillStyle(COLORS.teal, 1);
-    g.fillRoundedRect(134, 144, 332, 326, 30);
+    g.fillRoundedRect(134, 144, 332, 392, 30);
     g.fillStyle(COLORS.tealLight, 0.45);
-    g.fillRoundedRect(150, 152, 26, 300, 13);
+    g.fillRoundedRect(150, 152, 26, 366, 13);
     // Bandas cromadas.
     for (const y of [150]) {
       g.fillStyle(COLORS.chromeDark, 1);
@@ -138,7 +150,7 @@ export class MachineView {
     }
     // Remaches.
     for (const x of [150, 450]) {
-      for (const y of [176, 296, 440]) {
+      for (const y of [176, 296, 506]) {
         g.fillStyle(COLORS.tealDark, 1);
         g.fillCircle(x, y, 5);
         g.fillStyle(COLORS.chromeLight, 0.7);
@@ -160,13 +172,13 @@ export class MachineView {
 
     // Bandeja de goteo.
     g.fillStyle(COLORS.black, 0.35);
-    g.fillRoundedRect(CX - 104, 456, 208, 18, 6);
+    g.fillRoundedRect(CX - 104, 522, 208, 18, 6);
     g.fillStyle(COLORS.chromeDark, 1);
-    g.fillRoundedRect(CX - 106, 452, 212, 16, 6);
+    g.fillRoundedRect(CX - 106, 518, 212, 16, 6);
     g.fillStyle(COLORS.chrome, 1);
-    g.fillRoundedRect(CX - 104, 452, 208, 9, 5);
+    g.fillRoundedRect(CX - 104, 518, 208, 9, 5);
     g.lineStyle(2, COLORS.chromeDark, 1);
-    for (let x = CX - 92; x <= CX + 92; x += 14) g.lineBetween(x, 454, x, 460);
+    for (let x = CX - 92; x <= CX + 92; x += 14) g.lineBetween(x, 520, x, 526);
 
     // Placa del nombre.
     this.plaque.clear();
@@ -314,20 +326,20 @@ export class MachineView {
     }
     if (zone === "below" || zone === "above") {
       // Flecha: hacia dónde debe ir la aguja.
-      const ay = y + 40;
+      const ay = y + r * 0.72;
       const dir = zone === "below" ? -1 : 1;
       g.fillStyle(COLORS.brickDark, 1);
       g.fillTriangle(x - 7, ay - dir * 4, x + 7, ay - dir * 4, x, ay + dir * 5);
     } else if (zone === "in") {
       g.fillStyle(COLORS.tealDark, 1);
-      g.fillCircle(x, y + 40, 5);
+      g.fillCircle(x, y + r * 0.72, 5);
     }
     const key = `${label}|${color}`;
     if (key !== this.gaugeLabelKey) {
       this.gaugeLabelKey = key;
       this.gaugeLabel.setText(label);
       this.gaugeLabel.setColor(color);
-      this.gaugeLabel.setFontSize(zone ? 13 : 11);
+      this.gaugeLabel.setFontSize(zone ? 16 : 13);
     }
   }
 
@@ -368,7 +380,7 @@ export class MachineView {
     this.updateLamps(state);
 
     // Taza.
-    this.updateCup(state);
+    this.updateCup(state, dtMs);
 
     // Chorro y efectos del paso actual.
     this.updateStream(state, step);
@@ -381,12 +393,12 @@ export class MachineView {
   drawLegs(bodyY) {
     const g = this.legs;
     g.clear();
-    const hipY = 470 + bodyY;
+    const hipY = 536 + bodyY;
     const squash = Math.max(-6, Math.min(10, bodyY));
     for (const side of [-1, 1]) {
       const hipX = CX + side * 70;
       const footX = CX + side * 96;
-      const footY = 502;
+      const footY = 568;
       const kneeX = hipX + side * (14 + squash * 1.2);
       const kneeY = (hipY + footY) / 2;
       const curve = new Phaser.Curves.QuadraticBezier(
@@ -493,22 +505,12 @@ export class MachineView {
     }
   }
 
-  updateCup(state) {
-    const phase = state?.phase ?? "idle";
-    if (phase === "idle" || !state?.selectedDrink) {
-      if (this.lastCupKey !== "none") {
-        this.cup.clear();
-        this.lastCupKey = "none";
-      }
-      return;
-    }
+  /** Construye el contenido de la taza a partir de los pasos completados y el actual. */
+  cupSpecFor(state) {
     const steps = state.steps;
+    const phase = state.phase;
     const idx = phase === "ready" ? steps.length : state.stepIndex;
     const progress = phase === "ready" ? 1 : state.stepProgress;
-    const key = `${state.selectedDrink}|${state.modifiers.join(",")}|${idx}|${Math.round(progress * 30)}`;
-    if (key === this.lastCupKey) return;
-    this.lastCupKey = key;
-
     const icon = this.catalog.drinks[state.selectedDrink].icon;
     const togo = state.modifiers.includes("llevar");
     /** @type {import("./draw.js").CupSpec} */
@@ -518,44 +520,162 @@ export class MachineView {
       const f = i < idx ? 1 : progress;
       if (f <= 0) continue;
       if (s.fill) spec.layers.push({ color: hexToNum(s.fill.color), amount: s.fill.amount * f });
-      if (f >= 0.6) {
+      if (s.visual === "art") {
+        // El corazón del latte se dibuja poco a poco.
+        spec.toppings.push("heart");
+        spec.heartScale = Math.min(1, f * 1.2);
+      } else if (f >= 0.6) {
         if (s.visual === "dust") {
           spec.toppings.push("dust");
           if (s.color) spec.dustColor = hexToNum(s.color);
-        } else if (s.visual === "art") spec.toppings.push("heart");
-        else if (s.visual === "ice") spec.toppings.push("ice");
+        } else if (s.visual === "ice") spec.toppings.push("ice");
         else if (s.visual === "sugar") spec.toppings.push("sugar");
         else if (s.visual === "lid") spec.lid = true;
       }
     }
-    this.cup.clear();
-    if (phase === "ready") {
-      const pulse = this.options.reducedMotion ? 0.5 : 0.35 + 0.25 * Math.sin(this.time / 160);
-      this.cup.fillStyle(COLORS.glow, pulse);
-      this.cup.fillEllipse(CUP.x, CUP.base - CUP.size * 0.42, CUP.size * 1.6, CUP.size * 1.3);
-      this.lastCupKey += `|${Math.round(this.time / 60)}`;
+    const current = phase === "brewing" ? steps[idx] : null;
+    if (current && current.fill && !this.options.reducedMotion) {
+      // Mientras cae líquido, la superficie ondula.
+      spec.wave = { amp: 2.4, phase: this.time / 70 };
     }
-    this.cupGeo = drawCup(this.cup, spec, CUP.x, CUP.base, CUP.size);
+    return spec;
+  }
+
+  updateCup(state, dtMs) {
+    const phase = state?.phase ?? "idle";
+    const rm = this.options.reducedMotion;
+    if (phase !== this.cupPhase) {
+      if (phase === "brewing" && this.cupPhase !== "brewing") this.cupDropMs = 0;
+      this.cupPhase = phase;
+    }
+    if (phase === "idle" || !state?.selectedDrink) {
+      this.cup.clear();
+      this.cupFx.clear();
+      this.cupSpec = null;
+      this.cupGeo = null;
+      return;
+    }
+
+    // La taza cae sobre la bandeja, se aplasta un poco al aterrizar y se recupera.
+    this.cupDropMs += dtMs;
+    const t = rm ? 1 : Math.min(1, this.cupDropMs / 420);
+    this.cupLanded = t >= 1;
+    let offset = 0;
+    let squash = 1;
+    if (t < 0.6) {
+      const f = t / 0.6;
+      offset = -110 * (1 - f * f);
+    } else if (t < 1) {
+      const f = (t - 0.6) / 0.4;
+      squash = 1 - 0.14 * Math.sin(Math.PI * f);
+    }
+    if (phase === "ready" && !rm) offset = -Math.abs(Math.sin(this.time / 240)) * 5;
+    this.cupOffsetY = offset;
+    this.cupBox.setPosition(CUP.x, CUP.base + offset);
+    this.cupBox.setScale(1 / Math.sqrt(squash), squash);
+
+    const spec = this.cupSpecFor(state);
+    this.cupSpec = spec;
+    const g = this.cup;
+    g.clear();
+    if (phase === "ready") {
+      const pulse = rm ? 0.5 : 0.35 + 0.25 * Math.sin(this.time / 160);
+      g.fillStyle(COLORS.glow, pulse);
+      g.fillEllipse(0, -CUP.size * 0.42, CUP.size * 1.6, CUP.size * 1.3);
+    }
+    this.cupGeo = drawCup(g, spec, 0, 0, CUP.size);
+    this.drawCupEffects(state, spec, this.cupGeo);
+  }
+
+  /** Burbujas de espuma, vapor que sube de la taza y destellos al terminar. */
+  drawCupEffects(state, spec, geo) {
+    const g = this.cupFx;
+    g.clear();
+    const rm = this.options.reducedMotion;
+    const top = spec.layers[spec.layers.length - 1];
+    const foamColors = [hexToNum(this.catalog.fills.foam ?? "#f7efdc"), hexToNum(this.catalog.fills.oatfoam ?? "#efe0bd")];
+    if (top && foamColors.includes(top.color) && !spec.lid) {
+      g.fillStyle(COLORS.white, 0.9);
+      g.lineStyle(1.5, COLORS.paperEdge, 0.8);
+      for (let i = 0; i < 6; i++) {
+        const x = (i / 5 - 0.5) * geo.surfaceW * 0.7;
+        const r = 2 + (rm ? 1 : 1.2 * (1 + Math.sin(this.time / 180 + i * 1.7)));
+        g.fillCircle(x, geo.surfaceY + 3 + (i % 2) * 3, r);
+        g.strokeCircle(x, geo.surfaceY + 3 + (i % 2) * 3, r);
+      }
+    }
+    // Vapor: dos volutas que suben de la taza mientras hay líquido caliente.
+    if (spec.layers.length && !spec.lid) {
+      for (let k = 0; k < 2; k++) {
+        const cycle = rm ? 0.4 : ((this.time / 1500 + k * 0.5) % 1);
+        const alpha = rm ? 0.35 : Math.sin(Math.PI * cycle) * 0.55;
+        const baseY = geo.topY - 8 - cycle * 40;
+        const pts = [];
+        for (let j = 0; j <= 8; j++) {
+          pts.push({ x: (k ? 14 : -14) + Math.sin(j * 0.8 + this.time / 260 + k * 2) * 6, y: baseY - j * 6 });
+        }
+        g.lineStyle(3, COLORS.steam, alpha);
+        g.strokePoints(pts, false);
+      }
+    }
+    // Destellos cuando la bebida está lista.
+    if (state.phase === "ready") {
+      for (let i = 0; i < 4; i++) {
+        const a = (rm ? 0 : this.time / 900) + (i * Math.PI) / 2 + 0.4;
+        const rad = CUP.size * 0.62;
+        const x = Math.cos(a) * rad;
+        const y = -CUP.size * 0.45 + Math.sin(a) * rad * 0.75;
+        const size = rm ? 6 : 4 + 3 * (1 + Math.sin(this.time / 150 + i * 1.3));
+        drawSparkle(g, x, y, size);
+      }
+    }
   }
 
   updateStream(state, step) {
     const g = this.stream;
     g.clear();
-    if (!state || state.phase !== "brewing" || !step || !this.cupGeo) return;
-    const surfaceY = this.cupGeo.topY + 6;
+    if (!state || state.phase !== "brewing" || !step || !this.cupGeo || !this.cupLanded) return;
+    const surfaceY = CUP.base + this.cupOffsetY + this.cupGeo.surfaceY;
     const rm = this.options.reducedMotion;
-    const wobble = rm ? 0 : Math.sin(this.time / 50) * 1.2;
     const fillColor = step.fill ? hexToNum(step.fill.color) : null;
     if (step.visual === "pour" || step.visual === "water" || step.visual === "syrup") {
-      const width = step.visual === "pour" ? 7 : 5;
-      g.fillStyle(fillColor ?? COLORS.ink, 1);
-      g.fillRect(SPOUT.x - width / 2 + wobble, SPOUT.y, width, Math.max(0, surfaceY - SPOUT.y));
-      if (!rm) {
-        g.fillStyle(COLORS.white, 0.3);
-        g.fillRect(SPOUT.x - 1 + wobble, SPOUT.y, 1.5, Math.max(0, surfaceY - SPOUT.y));
+      // Chorro que se afina al caer, con un brillo y salpicaduras en la superficie.
+      const top = step.visual === "pour" ? 11 : 7;
+      const bottom = top * 0.45;
+      const len = Math.max(0, surfaceY - SPOUT.y);
+      const pts = [];
+      const n = 8;
+      for (let i = 0; i <= n; i++) {
+        const f = i / n;
+        const w = top + (bottom - top) * f;
+        const x = SPOUT.x + (rm ? 0 : Math.sin(this.time / 45 + f * 5) * 1.6 * f);
+        pts.push({ x: x - w / 2, y: SPOUT.y + len * f });
       }
+      for (let i = n; i >= 0; i--) {
+        const f = i / n;
+        const w = top + (bottom - top) * f;
+        const x = SPOUT.x + (rm ? 0 : Math.sin(this.time / 45 + f * 5) * 1.6 * f);
+        pts.push({ x: x + w / 2, y: SPOUT.y + len * f });
+      }
+      g.fillStyle(fillColor ?? COLORS.ink, 1);
+      g.fillPoints(pts, true);
+      g.fillStyle(COLORS.white, 0.3);
+      g.fillRect(SPOUT.x - 1, SPOUT.y, 1.5, len * 0.8);
+      // Onda donde cae el chorro.
+      const ring = rm ? 0.5 : (this.time / 300) % 1;
+      g.lineStyle(2, COLORS.white, 0.5 * (1 - ring));
+      g.strokeEllipse(SPOUT.x, surfaceY + 2, 10 + ring * 26, 3 + ring * 6);
+      this.emit("splash", SPOUT.x, surfaceY, 0.45, fillColor ?? COLORS.ink);
     } else if (step.visual === "steam") {
       this.emit("steam", WAND.x, WAND.y, 0.35);
+      // La leche o la espuma entra con un remolino suave en la superficie.
+      if (!rm) {
+        const a = this.time / 120;
+        g.lineStyle(2, COLORS.white, 0.6);
+        g.beginPath();
+        g.arc(SPOUT.x, surfaceY + 3, 12, a, a + Math.PI * 1.2, false);
+        g.strokePath();
+      }
     } else if (step.visual === "dust" || step.visual === "ice" || step.visual === "sugar" || step.visual === "cream" || step.visual === "lid" || step.visual === "art") {
       const color = step.visual === "dust" && step.color ? hexToNum(step.color) : step.visual === "ice" ? 0xdff1f2 : COLORS.white;
       this.emit("drop", CUP.x + (Math.random() - 0.5) * 30, SPOUT.y + 6, step.visual === "dust" ? 0.5 : 0.12, color);
@@ -564,19 +684,21 @@ export class MachineView {
     }
   }
 
-  /** Partículas simples (vapor, gotas, humo). */
+  /** Partículas simples (vapor, gotas, humo, salpicaduras). */
   emit(kind, x, y, rate, color = COLORS.steam) {
     if (this.options.reducedMotion && kind !== "smoke") return;
     if (Math.random() > rate) return;
+    const splash = kind === "splash";
     this.particles.push({
       kind,
       x,
       y,
-      vx: kind === "steam" ? (Math.random() - 0.3) * 0.03 : kind === "smoke" ? (Math.random() - 0.5) * 0.06 : 0,
-      vy: kind === "drop" ? 0.18 : -0.05 - Math.random() * 0.04,
-      r: kind === "drop" ? 3 : 6 + Math.random() * 6,
+      vx: kind === "steam" ? (Math.random() - 0.3) * 0.03 : kind === "smoke" ? (Math.random() - 0.5) * 0.06 : splash ? (Math.random() - 0.5) * 0.12 : 0,
+      vy: kind === "drop" ? 0.18 : splash ? -0.08 - Math.random() * 0.06 : -0.05 - Math.random() * 0.04,
+      gravity: splash ? 0.0006 : 0,
+      r: kind === "drop" ? 3 : splash ? 2 + Math.random() * 1.5 : 6 + Math.random() * 6,
       life: 0,
-      max: kind === "drop" ? 380 : 900,
+      max: kind === "drop" ? 380 : splash ? 320 : 900,
       color,
     });
   }
@@ -592,10 +714,11 @@ export class MachineView {
         keep.push(p);
         continue;
       }
+      if (p.gravity) p.vy += p.gravity * dtMs;
       p.x += p.vx * dtMs;
       p.y += p.vy * dtMs;
       const t = p.life / p.max;
-      if (p.kind === "drop") {
+      if (p.kind === "drop" || p.kind === "splash") {
         g.fillStyle(p.color, 1);
         g.fillCircle(p.x, p.y, p.r);
       } else {
@@ -767,6 +890,56 @@ export class MachineView {
     this.mood = "smile";
   }
 
+  /**
+   * Entrega: la taza sale volando en arco hasta la comanda y se encoge al llegar.
+   * @param {{ x: number, y: number }} target Punto del mundo.
+   */
+  flyCupTo(target) {
+    if (!this.cupSpec || this.options.reducedMotion || !target) return;
+    const ghost = this.makeGhostCup();
+    const from = { x: ghost.x, y: ghost.y };
+    const s0 = ghost.scaleX;
+    this.scene.tweens.addCounter({
+      from: 0,
+      to: 1,
+      duration: 480,
+      ease: "Sine.easeInOut",
+      onUpdate: (tw) => {
+        const t = tw.getValue();
+        ghost.setPosition(from.x + (target.x - from.x) * t, from.y + (target.y - from.y) * t - Math.sin(Math.PI * t) * 90 * s0);
+        ghost.setScale(s0 * (1 - 0.5 * t));
+        ghost.setAngle(Math.sin(Math.PI * t) * -12);
+        ghost.setAlpha(t > 0.8 ? (1 - t) / 0.2 : 1);
+      },
+      onComplete: () => ghost.destroy(),
+    });
+  }
+
+  /** Bebida equivocada: la taza se vuelca y cae. */
+  dumpCup() {
+    if (!this.cupSpec || this.options.reducedMotion) return;
+    const ghost = this.makeGhostCup();
+    this.scene.tweens.add({
+      targets: ghost,
+      y: ghost.y + 120 * ghost.scaleY,
+      angle: 70,
+      alpha: 0,
+      duration: 520,
+      ease: "Quad.easeIn",
+      onComplete: () => ghost.destroy(),
+    });
+  }
+
+  /** Copia de la taza actual en coordenadas del mundo, encima de todo. */
+  makeGhostCup() {
+    const p = this.localToWorld(CUP.x, CUP.base + this.cupOffsetY + this.body.y);
+    const ghost = this.scene.add.container(p.x, p.y).setDepth(450).setScale(this.root.scaleX);
+    const g = this.scene.add.graphics();
+    drawCup(g, { ...this.cupSpec, wave: undefined }, 0, 0, CUP.size);
+    ghost.add(g);
+    return ghost;
+  }
+
   /** Punto del mundo donde está la taza (para animaciones de entrega). */
   cupWorldPoint() {
     return this.localToWorld(CUP.x, CUP.base - CUP.size * 0.5);
@@ -786,4 +959,15 @@ export class MachineView {
     const s = this.root.scaleX;
     return { x: this.root.x + x * s, y: this.root.y + y * s };
   }
+}
+
+/** Destello de cuatro puntas. */
+function drawSparkle(g, x, y, size) {
+  g.fillStyle(COLORS.glow, 1);
+  g.fillTriangle(x - size, y, x + size, y, x, y - size * 2.2);
+  g.fillTriangle(x - size, y, x + size, y, x, y + size * 2.2);
+  g.fillTriangle(x, y - size, x, y + size, x - size * 2.2, y);
+  g.fillTriangle(x, y - size, x, y + size, x + size * 2.2, y);
+  g.fillStyle(COLORS.white, 1);
+  g.fillCircle(x, y, size * 0.45);
 }

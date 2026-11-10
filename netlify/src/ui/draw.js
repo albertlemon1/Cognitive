@@ -11,6 +11,8 @@ import { COLORS, FONTS, hexToNum } from "./palette.js";
  * @property {number} [dustColor]
  * @property {string|null} mark     decaf
  * @property {boolean} lid
+ * @property {{ amp: number, phase: number }} [wave]  Ondulación de la superficie (líquido en movimiento).
+ * @property {number} [heartScale]  Avance del dibujo del corazón (0..1).
  */
 
 const VESSELS = {
@@ -105,26 +107,32 @@ export function drawCup(g, spec, cx, baseY, size) {
     g.fillPoints(outline, true);
   }
 
-  // Contenido por capas.
+  // Contenido por capas. La capa de arriba puede ondular (líquido cayendo).
   let level = 0;
-  for (const layer of spec.layers) {
+  spec.layers.forEach((layer, index) => {
     const f0 = Math.min(1, level);
     const f1 = Math.min(1, level + layer.amount);
     level = f1;
-    if (f1 <= f0) continue;
+    if (f1 <= f0) return;
     const a = sliceAt(geo, f0);
     const b = sliceAt(geo, f1);
     g.fillStyle(layer.color, 1);
-    g.fillPoints(
-      [
-        { x: cx - a.w / 2, y: a.y },
-        { x: cx + a.w / 2, y: a.y },
-        { x: cx + b.w / 2, y: b.y },
-        { x: cx - b.w / 2, y: b.y },
-      ],
-      true,
-    );
-  }
+    const points = [
+      { x: cx - a.w / 2, y: a.y },
+      { x: cx + a.w / 2, y: a.y },
+    ];
+    if (spec.wave && index === spec.layers.length - 1) {
+      const n = 10;
+      for (let i = 0; i <= n; i++) {
+        const t = i / n;
+        const edge = i === 0 || i === n ? 0.3 : 1;
+        points.push({ x: cx + b.w / 2 - b.w * t, y: b.y + Math.sin(spec.wave.phase + t * 7) * spec.wave.amp * edge });
+      }
+    } else {
+      points.push({ x: cx + b.w / 2, y: b.y }, { x: cx - b.w / 2, y: b.y });
+    }
+    g.fillPoints(points, true);
+  });
   const surface = sliceAt(geo, Math.max(0.02, level));
 
   // Coberturas.
@@ -184,7 +192,7 @@ export function drawCup(g, spec, cx, baseY, size) {
     g.strokeRoundedRect(cx - topW * 0.56, topY - size * 0.08, topW * 1.12, size * 0.1, size * 0.03);
     g.strokeRect(cx - topW * 0.4, topY - size * 0.13, topW * 0.8, size * 0.06);
   }
-  return geo;
+  return { ...geo, surfaceY: surface.y, surfaceW: surface.w };
 }
 
 function drawTopping(g, topping, cx, surface, geo, size, spec) {
@@ -200,7 +208,8 @@ function drawTopping(g, topping, cx, surface, geo, size, spec) {
       break;
     }
     case "heart": {
-      const r = size * 0.05;
+      const r = size * 0.05 * (spec.heartScale ?? 1);
+      if (r <= 0.2) break;
       g.fillStyle(COLORS.white, 1);
       g.fillCircle(cx - r * 0.7, y + r * 0.8, r);
       g.fillCircle(cx + r * 0.7, y + r * 0.8, r);

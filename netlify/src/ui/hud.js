@@ -94,7 +94,7 @@ export class HudView {
     if (text !== this.lastInfo) {
       this.lastInfo = text;
       this.info.setText(text);
-      fitText(this.info, Math.max(80, this.infoMaxW ?? 400), this.height - 8, Math.min(22, this.height * 0.4) * (this.options.largeText ? 1.1 : 1), 10);
+      fitText(this.info, Math.max(80, this.infoMaxW ?? 400), this.height * 0.5, Math.min(22, this.height * 0.4) * (this.options.largeText ? 1.1 : 1), 10);
     }
   }
 
