@@ -1,0 +1,21 @@
+{
+  "name": "barra-sepia",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Juego web cognitivo: atiende comandas con una máquina de café vintage.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "serve": "node scripts/serve.mjs . 8080",
+    "build": "node scripts/build.mjs",
+    "test": "node --test \"tests/unit/*.test.js\"",
+    "test:e2e": "node --test --test-concurrency=1 tests/e2e/smoke.test.mjs",
+    "check": "npm test && npm run test:e2e",
+    "icons": "node scripts/make-icons.mjs"
+  },
+  "devDependencies": {
+    "phaser": "3.90.0"
+  }
+}
