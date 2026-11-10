@@ -97,3 +97,16 @@ test("describeDiff explica qué ajustar", () => {
     "Ajusta la consola y prepárala de nuevo.",
   ]);
 });
+
+test("pista de música: automática elige piano en Calma y práctica", async () => {
+  const { trackFor, TRACKS } = await import("../../src/audio/audio.js");
+  assert.equal(trackFor("auto", "normal"), "swing");
+  assert.equal(trackFor("auto", "calma"), "piano");
+  assert.equal(trackFor("auto", "practica"), "piano");
+  assert.equal(trackFor("piano", "normal"), "piano");
+  assert.equal(trackFor("swing", "calma"), "swing");
+  assert.deepEqual(Object.keys(TRACKS), ["swing", "piano"]);
+  assert.equal(normalizeState(null).settings.musicTrack, "auto");
+  assert.equal(normalizeState({ settings: { musicTrack: "piano" } }).settings.musicTrack, "piano");
+  assert.equal(normalizeState({ settings: { musicTrack: "polka" } }).settings.musicTrack, "auto");
+});

@@ -179,6 +179,28 @@ test("botón de música: apaga y enciende solo la música", { timeout: 120000 },
   }
 });
 
+test("selector de pista: automática toca piano en Calma y se puede cambiar a swing (archivo único)", { timeout: 120000 }, async () => {
+  const { context, page, errors } = await openGame(TARGETS["archivo único"], VIEWPORTS.escritorio);
+  try {
+    await page.check("#start-calm");
+    await page.click("#btn-start");
+    await page.waitForFunction(() => window.BarraSepia.scene.app.audio.playing);
+    assert.equal(await page.evaluate(() => window.BarraSepia.scene.app.audio.track), "piano");
+    // Cambiar a swing desde Ajustes durante el turno: entra al compás siguiente.
+    await tap(page, "pause");
+    await page.waitForFunction(() => window.BarraSepia.screen === "pause");
+    await page.click("#btn-settings-pause");
+    await page.selectOption("#set-track", "swing");
+    await page.click("#btn-settings-back");
+    await page.click("#btn-resume");
+    await page.waitForFunction(() => window.BarraSepia.scene.app.audio.track === "swing", null, { timeout: 15000 });
+    assert.equal(await page.evaluate(() => window.BarraSepia.scene.app.getSettings().musicTrack), "swing");
+    assert.deepEqual(errors, [], `errores de consola:\n${errors.join("\n")}`);
+  } finally {
+    await context.close();
+  }
+});
+
 test("archivo único: cumple el contrato del visor", () => {
   const html = readFileSync(join(ROOT, "dist/barra-sepia.html"), "utf8");
   assert.ok(html.slice(0, 8192).includes("<title>Barra Sepia</title>"));
