@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Barra Sepia</title>
+<meta name="description" content="Juego de atención y memoria: atiende comandas con una máquina de café de los años 50.">
+<meta name="theme-color" content="#2a1d15">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<!-- fonts:start -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&amp;family=Rye&amp;family=Special+Elite&amp;display=swap">
+<!-- fonts:end -->
+<link rel="stylesheet" href="src/styles.css">
+<!-- phaser:start -->
+<script defer src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
+<!-- phaser:end -->
+</head>
+<body>
+<!-- markup:start -->
+<div id="app" data-target="web">
+  <main id="stage">
+    <div id="game"></div>
+    <div id="overlay" class="overlay">
+      <section class="card"><p class="eyebrow">Barra Sepia</p><p class="loading">Encendiendo la máquina…</p></section>
+    </div>
+  </main>
+  <div id="announcer" class="sr-only" aria-live="polite"></div>
+  <noscript><p class="noscript">Barra Sepia necesita JavaScript para funcionar.</p></noscript>
+</div>
+<!-- markup:end -->
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
