@@ -7,6 +7,7 @@ const KEY = "barra-sepia:v1";
  * @typedef {Object} Settings
  * @property {number} musicVolume    0..1
  * @property {boolean} musicOn       Música encendida (los efectos no dependen de esto).
+ * @property {"auto"|"swing"|"piano"} musicTrack  Pista: automática (piano en Calma y práctica), swing o piano jazz.
  * @property {number} sfxVolume      0..1
  * @property {boolean} muted
  * @property {boolean} reducedMotion
@@ -35,6 +36,7 @@ export function defaultSettings() {
   return {
     musicVolume: 0.5,
     musicOn: true,
+    musicTrack: "auto",
     sfxVolume: 0.7,
     muted: false,
     reducedMotion: prefersReducedMotion(),
@@ -62,6 +64,7 @@ export function normalizeState(raw) {
     settings: {
       musicVolume: clamp01(s.musicVolume, d.musicVolume),
       musicOn: typeof s.musicOn === "boolean" ? s.musicOn : d.musicOn,
+      musicTrack: ["auto", "swing", "piano"].includes(s.musicTrack) ? s.musicTrack : d.musicTrack,
       sfxVolume: clamp01(s.sfxVolume, d.sfxVolume),
       muted: typeof s.muted === "boolean" ? s.muted : d.muted,
       reducedMotion: typeof s.reducedMotion === "boolean" ? s.reducedMotion : d.reducedMotion,

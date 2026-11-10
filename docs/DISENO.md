@@ -412,7 +412,19 @@ scripts/build.mjs        ← genera:
   - La programación de notas mira 350 ms por delante (antes 120 ms), para que no se corte si el dispositivo va lento.
 - **Interruptor de música:** botón con una corchea en la barra superior, tecla M y casilla en Ajustes. Solo apaga la música; los efectos siguen sonando. La preferencia se guarda (`settings.musicOn`).
 
-## 15. Fuera de la fase 1
+## 15. Pista de piano jazz (fase 1.4)
+
+- Segunda pista de música, **Piano jazz** (`src/audio/piano.js`), generada con Web Audio como la de swing, así que funciona igual en Netlify y en el visor:
+  - Forma de 16 compases en Si bemol: dos vueltas de I–vi–ii–V y un puente de dominantes (D7, G7, C7, F7).
+  - Mano izquierda en stride (bajo en 1 y 3, acorde en 2 y 4).
+  - Mano derecha con frases en corcheas con swing sobre las notas del acorde, alternando frases con más notas y otras con aire.
+  - Escobillas suaves.
+  - Tempo base de 92 que sube hasta 116 en hora punta.
+- **Síntesis del piano:** golpe de martillo (ruido filtrado muy corto), dos cuerdas levemente desafinadas, armónicos que se apagan a distinta velocidad y un filtro que se cierra con el tiempo. Suena a piano de bar de época, no a piano de concierto.
+- **Selector en Ajustes** (`settings.musicTrack`): "Automática" (piano en Calma y en la práctica, swing en el turno normal; valor por defecto), "Swing" o "Piano jazz". Si se cambia durante el turno, la pista nueva entra al empezar el compás siguiente.
+- **Volumen:** el trío tiene su propio control de volumen, equilibrado con el swing (0,027 frente a 0,025 de volumen medio, medido en el navegador).
+
+## 16. Fuera de la fase 1
 
 - Niveles Centro y Estación de tren (el formato de `levels` ya los admite).
 - Batería de evaluación previa y posterior.
@@ -420,7 +432,7 @@ scripts/build.mjs        ← genera:
 - Arte con imágenes o Spine; por ahora todo es vectorial por código.
 - Sincronización entre dispositivos.
 
-## 16. Decisiones tomadas fuera del prompt
+## 17. Decisiones tomadas fuera del prompt
 
 - **Pasos visibles pero automáticos.** El jugador elige bebida y modificadores; la máquina ejecuta los pasos sola. Así la carga cognitiva está en recordar y configurar, no en memorizar recetas.
 - **Regla de las trampas:** "el texto manda". El icono puede mentir; el texto de la comanda es la orden real. Se explica en la pantalla de inicio.

@@ -7,7 +7,7 @@ import { ensurePhaser, PHASER_VERSION } from "./platform/phaser-loader.js";
 import { registerServiceWorker } from "./platform/pwa.js";
 import { logicalSize } from "./platform/viewport.js";
 import { openStore, telemetryEvents } from "./telemetry/store.js";
-import { AudioEngine } from "./audio/audio.js";
+import { AudioEngine, trackFor } from "./audio/audio.js";
 import { Overlay } from "./ui/overlay.js";
 import { PRACTICE_ORDERS, PRACTICE_GAUGE_SCALE } from "./core/tutorial.js";
 import { defineBarScene } from "./scenes/BarScene.js";
@@ -132,6 +132,10 @@ async function boot() {
   function applySettings(patch) {
     const settings = settingsStore.updateSettings(patch);
     audio.applySettings(settings);
+    if ("musicTrack" in patch) {
+      const state = scene && scene.session ? scene.session.getState() : null;
+      audio.setTrack(trackFor(settings.musicTrack, state && !state.ended ? state.mode : settings.calm ? "calma" : "normal"));
+    }
     overlay.syncSettings(settings);
     if (scene) scene.applySettings(settings);
   }
@@ -144,6 +148,7 @@ async function boot() {
     const seed = newSeed();
     startedAt = new Date();
     overlay.hide();
+    audio.setTrack(trackFor(s.musicTrack, s.calm ? "calma" : "normal"));
     scene.startSession({
       seed,
       mode: s.calm ? "calma" : "normal",
@@ -163,6 +168,7 @@ async function boot() {
     const seed = newSeed();
     startedAt = new Date();
     overlay.hide();
+    audio.setTrack(trackFor(settingsStore.settings.musicTrack, "practica"));
     scene.startSession({
       seed,
       mode: "practica",

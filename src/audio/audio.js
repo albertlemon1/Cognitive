@@ -1,5 +1,24 @@
-// Sonido generado con Web Audio: un combo de swing (contrabajo, platillo, acordes),
-// crujido de disco y efectos de la máquina. Sin archivos de audio.
+// Sonido generado con Web Audio: dos pistas de música (combo de swing y trío de piano
+// jazz), crujido de disco y efectos de la máquina. Sin archivos de audio.
+
+import { PianoTrio } from "./piano.js";
+
+/** Pistas disponibles y su tempo base y máximo (con hora punta). */
+export const TRACKS = Object.freeze({
+  swing: { label: "Swing", tempo: 96, rush: 32 },
+  piano: { label: "Piano jazz", tempo: 92, rush: 24 },
+});
+
+/**
+ * Pista de música para un turno.
+ * @param {"auto"|"swing"|"piano"} choice  Ajuste del jugador.
+ * @param {"normal"|"calma"|"practica"} mode
+ * @returns {"swing"|"piano"}
+ */
+export function trackFor(choice, mode) {
+  if (choice === "swing" || choice === "piano") return choice;
+  return mode === "normal" ? "swing" : "piano";
+}
 
 const CHORDS = [
   // ii–V–I–VI en Fa, notas MIDI: bajo caminante y acorde.
@@ -33,8 +52,14 @@ export class AudioEngine {
     this.sfxGain = null;
     this.settings = { musicVolume: 0.5, sfxVolume: 0.7, muted: false, musicOn: true };
     this.playing = false;
-    this.tempo = 96;
-    this.targetTempo = 96;
+    /** @type {"swing"|"piano"} */
+    this.track = "swing";
+    /** @type {"swing"|"piano"|null} */
+    this.pendingTrack = null;
+    this.pressure = 0;
+    this.tempo = TRACKS.swing.tempo;
+    this.targetTempo = TRACKS.swing.tempo;
+    this.piano = null;
     this.nextBeatTime = 0;
     this.beat = 0;
     this.timer = null;
@@ -70,6 +95,7 @@ export class AudioEngine {
       data[i] = (seed / 4294967296) * 2 - 1;
     }
     this.noise = buffer;
+    this.piano = new PianoTrio(this);
     this.applySettings(this.settings);
     return true;
   }
@@ -83,6 +109,27 @@ export class AudioEngine {
     const music = this.settings.musicOn === false ? 0 : this.settings.musicVolume * 0.75;
     this.musicGain.gain.setTargetAtTime(music, now, 0.05);
     this.sfxGain.gain.setTargetAtTime(this.settings.sfxVolume * 0.8, now, 0.02);
+  }
+
+  /**
+   * Cambia de pista. Si ya suena música, el cambio entra al empezar el compás siguiente.
+   * @param {"swing"|"piano"} track
+   */
+  setTrack(track) {
+    if (!(track in TRACKS)) return;
+    if (!this.playing) {
+      this.track = track;
+      this.pendingTrack = null;
+      this.tempo = TRACKS[track].tempo;
+      this.updateTempo();
+      return;
+    }
+    if (track !== this.track) this.pendingTrack = track;
+  }
+
+  updateTempo() {
+    const t = TRACKS[this.track];
+    this.targetTempo = t.tempo + this.pressure * t.rush;
   }
 
   startMusic() {
@@ -101,7 +148,8 @@ export class AudioEngine {
 
   /** @param {number} pressure 0..1 (comandas pendientes, hora punta) */
   setPressure(pressure) {
-    this.targetTempo = 96 + Math.max(0, Math.min(1, pressure)) * 32;
+    this.pressure = Math.max(0, Math.min(1, pressure));
+    this.updateTempo();
   }
 
   suspend() {
@@ -118,7 +166,17 @@ export class AudioEngine {
     // Si la pestaña estuvo dormida, no recuperar compases perdidos.
     if (this.nextBeatTime < ctx.currentTime - 0.5) this.nextBeatTime = ctx.currentTime + 0.05;
     while (this.nextBeatTime < ctx.currentTime + 0.35) {
-      this.playBeat(this.beat, this.nextBeatTime);
+      if (this.pendingTrack && this.beat % 4 === 0) {
+        this.track = this.pendingTrack;
+        this.pendingTrack = null;
+        this.updateTempo();
+      }
+      if (this.track === "piano" && this.piano) {
+        this.piano.playBeat(this.beat, this.nextBeatTime, 60 / this.tempo);
+        if (Math.random() < 0.5) this.crackle(this.nextBeatTime + Math.random() * (60 / this.tempo));
+      } else {
+        this.playBeat(this.beat, this.nextBeatTime);
+      }
       this.tempo += (this.targetTempo - this.tempo) * 0.05;
       this.nextBeatTime += 60 / this.tempo;
       this.beat += 1;

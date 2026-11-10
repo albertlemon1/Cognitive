@@ -75,6 +75,7 @@ export class Overlay {
     range("#set-sfx", "sfxVolume");
     const minutes = (e) => this.callbacks.onSettings({ sessionMinutes: Number(/** @type {HTMLSelectElement} */ (e.target).value) });
     on("#set-minutes", "change", minutes);
+    on("#set-track", "change", (e) => this.callbacks.onSettings({ musicTrack: /** @type {HTMLSelectElement} */ (e.target).value }));
     on("#start-minutes", "change", minutes);
   }
 
@@ -94,6 +95,7 @@ export class Overlay {
     set("#set-music", "value", String(Math.round(settings.musicVolume * 100)));
     set("#set-sfx", "value", String(Math.round(settings.sfxVolume * 100)));
     set("#set-minutes", "value", String(settings.sessionMinutes));
+    set("#set-track", "value", settings.musicTrack);
     set("#start-minutes", "value", String(settings.sessionMinutes));
     document.documentElement.classList.toggle("large-text", settings.largeText);
     document.documentElement.classList.toggle("reduced-motion", settings.reducedMotion);
@@ -219,6 +221,13 @@ function template() {
     <h2 id="settings-title">Ajustes</h2>
     <div class="settings">
       <label class="check"><input type="checkbox" id="set-musicon"> Música de fondo</label>
+      <label class="select">Pista
+        <select id="set-track">
+          <option value="auto">Automática (piano en Calma y práctica)</option>
+          <option value="swing">Swing</option>
+          <option value="piano">Piano jazz</option>
+        </select>
+      </label>
       <label class="range">Volumen de la música <input type="range" id="set-music" min="0" max="100" step="5"></label>
       <label class="range">Efectos <input type="range" id="set-sfx" min="0" max="100" step="5"></label>
       <label class="check"><input type="checkbox" id="set-muted"> Silenciar todo</label>
