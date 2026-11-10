@@ -3875,7 +3875,7 @@ const MACHINE_W = 600;
 const MACHINE_H = 520;
 
 const CX = 300;
-const GAUGE = { x: 300, y: 112, r: 54 };
+const GAUGE = { x: 300, y: 104, r: 64 };
 const GAUGE_START = (-215 * Math.PI) / 180;
 const GAUGE_SWEEP = (250 * Math.PI) / 180;
 const CUP = { x: 300, base: 458, size: 74 };
@@ -3933,7 +3933,7 @@ class MachineView {
     this.arms = scene.add.graphics();
 
     this.plaqueText = scene.add.text(CX, 268, "", textStyle(22, { font: FONTS.type, color: CSS.ink, align: "center" })).setOrigin(0.5);
-    this.gaugeLabel = scene.add.text(GAUGE.x, GAUGE.y + 24, "PRESIÓN", textStyle(11, { font: FONTS.body, color: CSS.ink, bold: true, align: "center" })).setOrigin(0.5);
+    this.gaugeLabel = scene.add.text(GAUGE.x, GAUGE.y + GAUGE.r * 0.38, "PRESIÓN", textStyle(13, { font: FONTS.body, color: CSS.ink, bold: true, align: "center" })).setOrigin(0.5);
 
     this.body.add([
       this.arms,
@@ -3978,12 +3978,12 @@ class MachineView {
 
     // Remate de latón.
     g.fillStyle(COLORS.brassDark, 1);
-    g.fillRect(CX - 8, 36, 16, 26);
-    g.fillCircle(CX, 34, 15);
+    g.fillRect(CX - 8, 22, 16, 26);
+    g.fillCircle(CX, 20, 15);
     g.fillStyle(COLORS.brass, 1);
-    g.fillCircle(CX - 3, 31, 11);
+    g.fillCircle(CX - 3, 17, 11);
     g.fillStyle(COLORS.brassLight, 1);
-    g.fillCircle(CX - 6, 27, 4);
+    g.fillCircle(CX - 6, 13, 4);
 
     // Cuerpo esmaltado.
     g.fillStyle(COLORS.black, 0.3);
@@ -4179,20 +4179,20 @@ class MachineView {
     }
     if (zone === "below" || zone === "above") {
       // Flecha: hacia dónde debe ir la aguja.
-      const ay = y + 40;
+      const ay = y + r * 0.72;
       const dir = zone === "below" ? -1 : 1;
       g.fillStyle(COLORS.brickDark, 1);
       g.fillTriangle(x - 7, ay - dir * 4, x + 7, ay - dir * 4, x, ay + dir * 5);
     } else if (zone === "in") {
       g.fillStyle(COLORS.tealDark, 1);
-      g.fillCircle(x, y + 40, 5);
+      g.fillCircle(x, y + r * 0.72, 5);
     }
     const key = `${label}|${color}`;
     if (key !== this.gaugeLabelKey) {
       this.gaugeLabelKey = key;
       this.gaugeLabel.setText(label);
       this.gaugeLabel.setColor(color);
-      this.gaugeLabel.setFontSize(zone ? 13 : 11);
+      this.gaugeLabel.setFontSize(zone ? 16 : 13);
     }
   }
 
@@ -4733,33 +4733,42 @@ class TicketView {
     paper.strokePoints(paperOutline(0, 0), true);
     paper.lineStyle(2, COLORS.paperEdge, 1);
     for (let x = -TICKET_W / 2 + 14; x < TICKET_W / 2 - 14; x += 14) paper.lineBetween(x, 52, x + 7, 52);
+    // Distribución: nombre a todo el ancho arriba; abajo, el dibujo a la izquierda
+    // y los extras en columna a la derecha. Así el texto puede ser más grande.
     const cup = scene.add.graphics();
-    drawCup(cup, iconSpec(catalog, order.iconDrinkId), -72, 134, 66);
+    drawCup(cup, iconSpec(catalog, order.iconDrinkId), -68, 222, 76);
     this.front.add([paper, cup]);
 
-    const number = scene.add.text(-TICKET_W / 2 + 14, 14, `No. ${order.id}`, textStyle(24, { font: FONTS.type, color: CSS.brick }));
+    const number = scene.add.text(-TICKET_W / 2 + 12, 12, `No. ${order.id}`, textStyle(27, { font: FONTS.type, color: CSS.brick }));
+    fitText(number, 92, 34, 27, 16);
     this.front.add(number);
 
-    const name = scene.add.text(-34, 58, catalog.drinks[order.drinkId].label, textStyle(30 * k, { font: FONTS.type, color: CSS.ink }));
-    fitText(name, TICKET_W / 2 + 34 - 10, 76, 30 * k, 14);
+    const name = scene.add.text(-TICKET_W / 2 + 12, 58, catalog.drinks[order.drinkId].label, textStyle(36 * k, { font: FONTS.type, color: CSS.ink }));
+    name.setLineSpacing(-4);
+    fitText(name, TICKET_W - 24, 72, 36 * k, 16);
     this.front.add(name);
 
     const chips = scene.add.graphics();
     this.front.add(chips);
-    const rowH = 32;
+    const colX = -30;
+    const colW = TICKET_W / 2 - colX - 8;
+    const rowH = 34;
+    const top = 134;
     if (order.modifiers.length === 0) {
-      const none = scene.add.text(-TICKET_W / 2 + 16, 150, "Sin extras", textStyle(21 * k, { color: "#7a6450" }));
+      const none = scene.add.text(colX + 4, top + 14, "Sin extras", textStyle(24 * k, { color: "#7a6450" }));
       none.setFontStyle("italic");
+      fitText(none, colW - 4, rowH * 2, 24 * k, 14);
       this.front.add(none);
     }
     order.modifiers.forEach((modId, i) => {
       const mod = catalog.modifiers[modId];
-      const y = 146 + i * rowH;
+      const y = top + i * rowH;
       chips.fillStyle(COLORS.paperShade, 1);
-      chips.fillRoundedRect(-TICKET_W / 2 + 10, y - 2, TICKET_W - 20, rowH - 4, 8);
-      drawModifierIcon(chips, mod.icon, -TICKET_W / 2 + 28, y + rowH / 2 - 4, 24);
-      const label = scene.add.text(-TICKET_W / 2 + 46, y + 1, mod.short, textStyle(22 * k, { bold: true }));
-      fitText(label, TICKET_W - 66, rowH - 4, 22 * k, 12);
+      chips.fillRoundedRect(colX, y, colW, rowH - 4, 8);
+      drawModifierIcon(chips, mod.icon, colX + 15, y + (rowH - 4) / 2, 24);
+      const label = scene.add.text(colX + 31, y + (rowH - 4) / 2, mod.short, textStyle(26 * k, { bold: true }));
+      label.setOrigin(0, 0.5);
+      fitText(label, colW - 35, rowH - 4, 26 * k, 13);
       this.front.add(label);
     });
 
@@ -5283,9 +5292,10 @@ class ControlsView {
     this.catalog.modifierOrder.forEach((id) => {
       const r = this.rects.get(`mod:${id}`);
       const mod = this.catalog.modifiers[id];
-      const label = add(`mod:${id}`, this.scene.add.text(r.x + 40, r.y + r.h / 2, mod.label, textStyle(17 * k, { bold: true, color: CSS.ink })));
+      // Etiqueta corta (la misma que en las comandas) para poder usar letra grande.
+      const label = add(`mod:${id}`, this.scene.add.text(r.x + 34, r.y + r.h / 2, mod.short, textStyle(24 * k, { bold: true, color: CSS.ink })));
       label.setOrigin(0, 0.5);
-      fitText(label, r.w - 40 - 50, r.h - 12, (portrait ? 19 : 17) * k, 10);
+      fitText(label, r.w - 34 - 44, r.h - 10, (portrait ? 25 : 23) * k, 12);
       const state = add(`state:${id}`, this.scene.add.text(r.x + r.w - 24, r.y + r.h - 6, "NO", textStyle(13 * k, { bold: true, align: "center" })));
       state.setOrigin(0.5, 1);
       if (this.options.keyHints && mod.key) add(`hint:mod:${id}`, this.hint(mod.key, r.x + r.w - 6, r.y + 4));
@@ -5360,7 +5370,7 @@ class ControlsView {
       const r = this.rects.get(`mod:${id}`);
       const on = view.modifiers.includes(id);
       this.drawSwitch(g, r, on, locked);
-      drawModifierIcon(g, this.catalog.modifiers[id].icon, r.x + 22, r.y + r.h / 2, 26);
+      drawModifierIcon(g, this.catalog.modifiers[id].icon, r.x + 18, r.y + r.h / 2, 24);
       this.texts.get(`mod:${id}`).setAlpha(locked ? 0.55 : 1);
       const state = this.texts.get(`state:${id}`);
       state.setText(on ? "SÍ" : "NO");
@@ -6132,7 +6142,7 @@ function defineBarScene(Phaser) {
       let machine;
       let controls;
       if (portrait) {
-        rail = { x: 8, y: HUD_H + 4, w: W - 16, h: 250 };
+        rail = { x: 8, y: HUD_H + 4, w: W - 16, h: 288 };
         // La consola no ocupa más del 58 % del alto disponible: la máquina es la protagonista.
         const available = H - (rail.y + rail.h);
         const controlsH = Math.min(600, Math.round((W - 16) * (560 / 700)), Math.round(available * 0.58));
@@ -6141,7 +6151,7 @@ function defineBarScene(Phaser) {
       } else {
         // Horizontal: máquina a toda altura a la izquierda; riel y consola a la derecha.
         const colX = Math.round(Math.max(W * 0.42, W - 760));
-        rail = { x: colX, y: HUD_H + 2, w: W - colX - 8, h: 262 };
+        rail = { x: colX, y: HUD_H + 2, w: W - colX - 8, h: 278 };
         const bottomY = rail.y + rail.h + 2;
         controls = { x: colX, y: bottomY, w: W - colX - 10, h: H - bottomY - 10 };
         machine = { x: 0, y: HUD_H + 40, w: colX - 4, h: H - HUD_H - 40 };

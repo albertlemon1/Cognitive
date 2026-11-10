@@ -105,7 +105,7 @@ export function defineBarScene(Phaser) {
       let machine;
       let controls;
       if (portrait) {
-        rail = { x: 8, y: HUD_H + 4, w: W - 16, h: 250 };
+        rail = { x: 8, y: HUD_H + 4, w: W - 16, h: 288 };
         // La consola no ocupa más del 58 % del alto disponible: la máquina es la protagonista.
         const available = H - (rail.y + rail.h);
         const controlsH = Math.min(600, Math.round((W - 16) * (560 / 700)), Math.round(available * 0.58));
@@ -114,7 +114,7 @@ export function defineBarScene(Phaser) {
       } else {
         // Horizontal: máquina a toda altura a la izquierda; riel y consola a la derecha.
         const colX = Math.round(Math.max(W * 0.42, W - 760));
-        rail = { x: colX, y: HUD_H + 2, w: W - colX - 8, h: 262 };
+        rail = { x: colX, y: HUD_H + 2, w: W - colX - 8, h: 278 };
         const bottomY = rail.y + rail.h + 2;
         controls = { x: colX, y: bottomY, w: W - colX - 10, h: H - bottomY - 10 };
         machine = { x: 0, y: HUD_H + 40, w: colX - 4, h: H - HUD_H - 40 };

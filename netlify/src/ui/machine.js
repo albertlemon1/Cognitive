@@ -10,7 +10,7 @@ export const MACHINE_W = 600;
 export const MACHINE_H = 520;
 
 const CX = 300;
-const GAUGE = { x: 300, y: 112, r: 54 };
+const GAUGE = { x: 300, y: 104, r: 64 };
 const GAUGE_START = (-215 * Math.PI) / 180;
 const GAUGE_SWEEP = (250 * Math.PI) / 180;
 const CUP = { x: 300, base: 458, size: 74 };
@@ -68,7 +68,7 @@ export class MachineView {
     this.arms = scene.add.graphics();
 
     this.plaqueText = scene.add.text(CX, 268, "", textStyle(22, { font: FONTS.type, color: CSS.ink, align: "center" })).setOrigin(0.5);
-    this.gaugeLabel = scene.add.text(GAUGE.x, GAUGE.y + 24, "PRESIÓN", textStyle(11, { font: FONTS.body, color: CSS.ink, bold: true, align: "center" })).setOrigin(0.5);
+    this.gaugeLabel = scene.add.text(GAUGE.x, GAUGE.y + GAUGE.r * 0.38, "PRESIÓN", textStyle(13, { font: FONTS.body, color: CSS.ink, bold: true, align: "center" })).setOrigin(0.5);
 
     this.body.add([
       this.arms,
@@ -113,12 +113,12 @@ export class MachineView {
 
     // Remate de latón.
     g.fillStyle(COLORS.brassDark, 1);
-    g.fillRect(CX - 8, 36, 16, 26);
-    g.fillCircle(CX, 34, 15);
+    g.fillRect(CX - 8, 22, 16, 26);
+    g.fillCircle(CX, 20, 15);
     g.fillStyle(COLORS.brass, 1);
-    g.fillCircle(CX - 3, 31, 11);
+    g.fillCircle(CX - 3, 17, 11);
     g.fillStyle(COLORS.brassLight, 1);
-    g.fillCircle(CX - 6, 27, 4);
+    g.fillCircle(CX - 6, 13, 4);
 
     // Cuerpo esmaltado.
     g.fillStyle(COLORS.black, 0.3);
@@ -314,20 +314,20 @@ export class MachineView {
     }
     if (zone === "below" || zone === "above") {
       // Flecha: hacia dónde debe ir la aguja.
-      const ay = y + 40;
+      const ay = y + r * 0.72;
       const dir = zone === "below" ? -1 : 1;
       g.fillStyle(COLORS.brickDark, 1);
       g.fillTriangle(x - 7, ay - dir * 4, x + 7, ay - dir * 4, x, ay + dir * 5);
     } else if (zone === "in") {
       g.fillStyle(COLORS.tealDark, 1);
-      g.fillCircle(x, y + 40, 5);
+      g.fillCircle(x, y + r * 0.72, 5);
     }
     const key = `${label}|${color}`;
     if (key !== this.gaugeLabelKey) {
       this.gaugeLabelKey = key;
       this.gaugeLabel.setText(label);
       this.gaugeLabel.setColor(color);
-      this.gaugeLabel.setFontSize(zone ? 13 : 11);
+      this.gaugeLabel.setFontSize(zone ? 16 : 13);
     }
   }
 

@@ -174,9 +174,10 @@ export class ControlsView {
     this.catalog.modifierOrder.forEach((id) => {
       const r = this.rects.get(`mod:${id}`);
       const mod = this.catalog.modifiers[id];
-      const label = add(`mod:${id}`, this.scene.add.text(r.x + 40, r.y + r.h / 2, mod.label, textStyle(17 * k, { bold: true, color: CSS.ink })));
+      // Etiqueta corta (la misma que en las comandas) para poder usar letra grande.
+      const label = add(`mod:${id}`, this.scene.add.text(r.x + 34, r.y + r.h / 2, mod.short, textStyle(24 * k, { bold: true, color: CSS.ink })));
       label.setOrigin(0, 0.5);
-      fitText(label, r.w - 40 - 50, r.h - 12, (portrait ? 19 : 17) * k, 10);
+      fitText(label, r.w - 34 - 44, r.h - 10, (portrait ? 25 : 23) * k, 12);
       const state = add(`state:${id}`, this.scene.add.text(r.x + r.w - 24, r.y + r.h - 6, "NO", textStyle(13 * k, { bold: true, align: "center" })));
       state.setOrigin(0.5, 1);
       if (this.options.keyHints && mod.key) add(`hint:mod:${id}`, this.hint(mod.key, r.x + r.w - 6, r.y + 4));
@@ -251,7 +252,7 @@ export class ControlsView {
       const r = this.rects.get(`mod:${id}`);
       const on = view.modifiers.includes(id);
       this.drawSwitch(g, r, on, locked);
-      drawModifierIcon(g, this.catalog.modifiers[id].icon, r.x + 22, r.y + r.h / 2, 26);
+      drawModifierIcon(g, this.catalog.modifiers[id].icon, r.x + 18, r.y + r.h / 2, 24);
       this.texts.get(`mod:${id}`).setAlpha(locked ? 0.55 : 1);
       const state = this.texts.get(`state:${id}`);
       state.setText(on ? "SÍ" : "NO");

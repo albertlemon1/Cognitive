@@ -72,33 +72,42 @@ export class TicketView {
     paper.strokePoints(paperOutline(0, 0), true);
     paper.lineStyle(2, COLORS.paperEdge, 1);
     for (let x = -TICKET_W / 2 + 14; x < TICKET_W / 2 - 14; x += 14) paper.lineBetween(x, 52, x + 7, 52);
+    // Distribución: nombre a todo el ancho arriba; abajo, el dibujo a la izquierda
+    // y los extras en columna a la derecha. Así el texto puede ser más grande.
     const cup = scene.add.graphics();
-    drawCup(cup, iconSpec(catalog, order.iconDrinkId), -72, 134, 66);
+    drawCup(cup, iconSpec(catalog, order.iconDrinkId), -68, 222, 76);
     this.front.add([paper, cup]);
 
-    const number = scene.add.text(-TICKET_W / 2 + 14, 14, `No. ${order.id}`, textStyle(24, { font: FONTS.type, color: CSS.brick }));
+    const number = scene.add.text(-TICKET_W / 2 + 12, 12, `No. ${order.id}`, textStyle(27, { font: FONTS.type, color: CSS.brick }));
+    fitText(number, 92, 34, 27, 16);
     this.front.add(number);
 
-    const name = scene.add.text(-34, 58, catalog.drinks[order.drinkId].label, textStyle(30 * k, { font: FONTS.type, color: CSS.ink }));
-    fitText(name, TICKET_W / 2 + 34 - 10, 76, 30 * k, 14);
+    const name = scene.add.text(-TICKET_W / 2 + 12, 58, catalog.drinks[order.drinkId].label, textStyle(36 * k, { font: FONTS.type, color: CSS.ink }));
+    name.setLineSpacing(-4);
+    fitText(name, TICKET_W - 24, 72, 36 * k, 16);
     this.front.add(name);
 
     const chips = scene.add.graphics();
     this.front.add(chips);
-    const rowH = 32;
+    const colX = -30;
+    const colW = TICKET_W / 2 - colX - 8;
+    const rowH = 34;
+    const top = 134;
     if (order.modifiers.length === 0) {
-      const none = scene.add.text(-TICKET_W / 2 + 16, 150, "Sin extras", textStyle(21 * k, { color: "#7a6450" }));
+      const none = scene.add.text(colX + 4, top + 14, "Sin extras", textStyle(24 * k, { color: "#7a6450" }));
       none.setFontStyle("italic");
+      fitText(none, colW - 4, rowH * 2, 24 * k, 14);
       this.front.add(none);
     }
     order.modifiers.forEach((modId, i) => {
       const mod = catalog.modifiers[modId];
-      const y = 146 + i * rowH;
+      const y = top + i * rowH;
       chips.fillStyle(COLORS.paperShade, 1);
-      chips.fillRoundedRect(-TICKET_W / 2 + 10, y - 2, TICKET_W - 20, rowH - 4, 8);
-      drawModifierIcon(chips, mod.icon, -TICKET_W / 2 + 28, y + rowH / 2 - 4, 24);
-      const label = scene.add.text(-TICKET_W / 2 + 46, y + 1, mod.short, textStyle(22 * k, { bold: true }));
-      fitText(label, TICKET_W - 66, rowH - 4, 22 * k, 12);
+      chips.fillRoundedRect(colX, y, colW, rowH - 4, 8);
+      drawModifierIcon(chips, mod.icon, colX + 15, y + (rowH - 4) / 2, 24);
+      const label = scene.add.text(colX + 31, y + (rowH - 4) / 2, mod.short, textStyle(26 * k, { bold: true }));
+      label.setOrigin(0, 0.5);
+      fitText(label, colW - 35, rowH - 4, 26 * k, 13);
       this.front.add(label);
     });
 

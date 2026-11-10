@@ -1,7 +1,7 @@
 // Service worker de Barra Sepia (generado por scripts/build.mjs; no editar en netlify/).
 // Caché primero con actualización en segundo plano: el juego funciona sin conexión.
 
-const CACHE = "barra-sepia-0.1.0-5d7f361f83";
+const CACHE = "barra-sepia-0.1.0-77e6888ccf";
 const PRECACHE = [
   "./",
   "data/recipes.json",
