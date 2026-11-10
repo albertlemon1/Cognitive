@@ -1035,6 +1035,7 @@ const KEY = "barra-sepia:v1";
 /**
  * @typedef {Object} Settings
  * @property {number} musicVolume    0..1
+ * @property {boolean} musicOn       Música encendida (los efectos no dependen de esto).
  * @property {number} sfxVolume      0..1
  * @property {boolean} muted
  * @property {boolean} reducedMotion
@@ -1062,6 +1063,7 @@ function prefersReducedMotion() {
 function defaultSettings() {
   return {
     musicVolume: 0.5,
+    musicOn: true,
     sfxVolume: 0.7,
     muted: false,
     reducedMotion: prefersReducedMotion(),
@@ -1088,6 +1090,7 @@ function normalizeState(raw) {
   return {
     settings: {
       musicVolume: clamp01(s.musicVolume, d.musicVolume),
+      musicOn: typeof s.musicOn === "boolean" ? s.musicOn : d.musicOn,
       sfxVolume: clamp01(s.sfxVolume, d.sfxVolume),
       muted: typeof s.muted === "boolean" ? s.muted : d.muted,
       reducedMotion: typeof s.reducedMotion === "boolean" ? s.reducedMotion : d.reducedMotion,
@@ -1553,6 +1556,19 @@ const CHORDS = [
   { walk: [50, 54, 57, 49], chord: [54, 57, 60, 62] }, // D7
 ];
 
+// Frase del vibráfono: por cada medio compás, qué nota del acorde suena en cada tiempo
+// (0–3 = notas del acorde, 4+ = octava arriba, null = silencio).
+const MELODY = [
+  [2, null, 3, null],
+  [4, 3, null, 2],
+  [1, null, 2, 3],
+  [null, 4, 3, null],
+  [3, null, 1, null],
+  [2, 3, 4, null],
+  [5, null, 4, 2],
+  [null, null, 1, null],
+];
+
 const midiToHz = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
 class AudioEngine {
@@ -1562,7 +1578,7 @@ class AudioEngine {
     this.master = null;
     this.musicGain = null;
     this.sfxGain = null;
-    this.settings = { musicVolume: 0.5, sfxVolume: 0.7, muted: false };
+    this.settings = { musicVolume: 0.5, sfxVolume: 0.7, muted: false, musicOn: true };
     this.playing = false;
     this.tempo = 96;
     this.targetTempo = 96;
@@ -1605,13 +1621,14 @@ class AudioEngine {
     return true;
   }
 
-  /** @param {{ musicVolume: number, sfxVolume: number, muted: boolean }} settings */
+  /** @param {{ musicVolume: number, sfxVolume: number, muted: boolean, musicOn?: boolean }} settings */
   applySettings(settings) {
     this.settings = { ...this.settings, ...settings };
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
     this.master.gain.setTargetAtTime(this.settings.muted ? 0 : 1, now, 0.05);
-    this.musicGain.gain.setTargetAtTime(this.settings.musicVolume * 0.32, now, 0.05);
+    const music = this.settings.musicOn === false ? 0 : this.settings.musicVolume * 0.75;
+    this.musicGain.gain.setTargetAtTime(music, now, 0.05);
     this.sfxGain.gain.setTargetAtTime(this.settings.sfxVolume * 0.8, now, 0.02);
   }
 
@@ -1620,7 +1637,7 @@ class AudioEngine {
     this.playing = true;
     this.nextBeatTime = this.ctx.currentTime + 0.1;
     this.beat = 0;
-    this.timer = setInterval(() => this.schedule(), 25);
+    this.timer = setInterval(() => this.schedule(), 50);
   }
 
   stopMusic() {
@@ -1646,8 +1663,8 @@ class AudioEngine {
     if (!this.ctx || !this.playing) return;
     const ctx = this.ctx;
     // Si la pestaña estuvo dormida, no recuperar compases perdidos.
-    if (this.nextBeatTime < ctx.currentTime - 0.2) this.nextBeatTime = ctx.currentTime + 0.05;
-    while (this.nextBeatTime < ctx.currentTime + 0.12) {
+    if (this.nextBeatTime < ctx.currentTime - 0.5) this.nextBeatTime = ctx.currentTime + 0.05;
+    while (this.nextBeatTime < ctx.currentTime + 0.35) {
       this.playBeat(this.beat, this.nextBeatTime);
       this.tempo += (this.targetTempo - this.tempo) * 0.05;
       this.nextBeatTime += 60 / this.tempo;
@@ -1662,12 +1679,21 @@ class AudioEngine {
     const beatLen = 60 / this.tempo;
     const swing = beatLen * (2 / 3);
 
-    this.bass(midiToHz(chord.walk[pos]), t, beatLen * 0.9);
+    // Contrabajo una octava arriba: se oye también en altavoces de teléfono.
+    this.bass(midiToHz(chord.walk[pos] + 12), t, beatLen * 0.9);
     // Platillo con swing: 1, 2-y, 3, 4-y.
     this.ride(t, pos % 2 === 0 ? 0.5 : 0.35);
     if (pos % 2 === 1) this.ride(t + swing, 0.25);
     // Acordes en 2 y 4 (comping suave).
     if (pos === 1 || pos === 3) this.chord(chord.chord.map(midiToHz), t, beatLen * 0.45);
+    // Vibráfono: frase de 8 compases sobre las notas del acorde, con swing.
+    const phrase = MELODY[Math.floor(beat / 2) % MELODY.length];
+    const step = beat % 2;
+    const note = phrase[pos];
+    if (note != null) {
+      const midi = chord.chord[note % 4] + 12 + (note >= 4 ? 12 : 0);
+      this.vibes(midiToHz(midi), t + (step && pos % 2 ? swing * 0.5 : 0), beatLen * 1.4);
+    }
     // Crujido de disco.
     if (Math.random() < 0.6) this.crackle(t + Math.random() * beatLen);
   }
@@ -1675,11 +1701,12 @@ class AudioEngine {
   bass(freq, t, dur) {
     const ctx = this.ctx;
     const osc = ctx.createOscillator();
-    osc.type = "triangle";
+    osc.type = "sawtooth";
     osc.frequency.value = freq;
     const filter = ctx.createBiquadFilter();
     filter.type = "lowpass";
-    filter.frequency.value = 600;
+    filter.frequency.value = 900;
+    filter.Q.value = 2;
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0.0001, t);
     gain.gain.exponentialRampToValueAtTime(0.5, t + 0.015);
@@ -1707,16 +1734,45 @@ class AudioEngine {
     const ctx = this.ctx;
     for (const f of freqs) {
       const osc = ctx.createOscillator();
-      osc.type = "sine";
+      osc.type = "triangle";
       osc.frequency.value = f;
       const gain = ctx.createGain();
       gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(0.06, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.08, t + 0.02);
       gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
       osc.connect(gain).connect(this.musicGain);
       osc.start(t);
       osc.stop(t + dur + 0.05);
     }
+  }
+
+  /** Nota de vibráfono: seno con un parcial agudo y trémolo suave. */
+  vibes(freq, t, dur) {
+    const ctx = this.ctx;
+    const out = ctx.createGain();
+    out.gain.setValueAtTime(0.0001, t);
+    out.gain.exponentialRampToValueAtTime(0.22, t + 0.01);
+    out.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    const tremolo = ctx.createGain();
+    tremolo.gain.value = 0.85;
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 5.5;
+    const depth = ctx.createGain();
+    depth.gain.value = 0.15;
+    lfo.connect(depth).connect(tremolo.gain);
+    for (const [mult, amp] of [[1, 1], [4, 0.12]]) {
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.value = freq * mult;
+      const g = ctx.createGain();
+      g.gain.value = amp;
+      osc.connect(g).connect(out);
+      osc.start(t);
+      osc.stop(t + dur + 0.05);
+    }
+    out.connect(tremolo).connect(this.musicGain);
+    lfo.start(t);
+    lfo.stop(t + dur + 0.05);
   }
 
   crackle(t) {
@@ -2099,6 +2155,7 @@ class Overlay {
 
     const toggle = (id, key) => on(id, "change", (e) => this.callbacks.onSettings({ [key]: /** @type {HTMLInputElement} */ (e.target).checked }));
     toggle("#set-muted", "muted");
+    toggle("#set-musicon", "musicOn");
     toggle("#set-motion", "reducedMotion");
     toggle("#set-colorblind", "colorBlind");
     toggle("#set-largetext", "largeText");
@@ -2119,6 +2176,7 @@ class Overlay {
       if (el && el[prop] !== value) el[prop] = value;
     };
     set("#set-muted", "checked", settings.muted);
+    set("#set-musicon", "checked", settings.musicOn);
     set("#set-motion", "checked", settings.reducedMotion);
     set("#set-colorblind", "checked", settings.colorBlind);
     set("#set-largetext", "checked", settings.largeText);
@@ -2251,7 +2309,8 @@ function template() {
   <section class="card" data-screen="settings" hidden aria-labelledby="settings-title">
     <h2 id="settings-title">Ajustes</h2>
     <div class="settings">
-      <label class="range">Música <input type="range" id="set-music" min="0" max="100" step="5"></label>
+      <label class="check"><input type="checkbox" id="set-musicon"> Música de fondo</label>
+      <label class="range">Volumen de la música <input type="range" id="set-music" min="0" max="100" step="5"></label>
       <label class="range">Efectos <input type="range" id="set-sfx" min="0" max="100" step="5"></label>
       <label class="check"><input type="checkbox" id="set-muted"> Silenciar todo</label>
       <label class="check"><input type="checkbox" id="set-motion"> Movimiento reducido</label>
@@ -2260,7 +2319,7 @@ function template() {
       <label class="check"><input type="checkbox" id="set-calm"> Modo Calma</label>
       <label class="select">Duración del turno <select id="set-minutes">${minutesOptions()}</select></label>
     </div>
-    <p class="note">Teclado: 1–9, 0, - y = eligen bebida · Q W E R los extras · Enter prepara · Espacio mantiene la presión · A S D entregan a la comanda 1, 2 o 3 · L limpia · Esc pausa.</p>
+    <p class="note">Teclado: 1 a 6 eligen bebida · Q W E R los extras · Enter prepara · Espacio mantiene la presión · A S D entregan a la comanda 1, 2 o 3 · L toma un respiro · M enciende o apaga la música · Esc pausa.</p>
     <div class="actions">
       <button type="button" class="btn primary" id="btn-settings-back" data-autofocus>Volver</button>
     </div>
@@ -5507,9 +5566,9 @@ class ControlsView {
     big("pressure", 96, "PRESIÓN", this.pressureSubDefault, (r) => r.w - 104);
 
     const rc = this.rects.get("clean");
-    const clean = add("clean:label", this.scene.add.text(rc.x + rc.w / 2, rc.y + rc.h - 12, this.options.keyHints ? "Limpiar · L" : "Limpiar", textStyle(16 * k, { bold: true, align: "center" })));
+    const clean = add("clean:label", this.scene.add.text(rc.x + rc.w / 2, rc.y + rc.h - 12, this.options.keyHints ? "Respiro 3 s · L" : "Respiro 3 s", textStyle(18 * k, { bold: true, align: "center" })));
     clean.setOrigin(0.5, 1);
-    fitText(clean, rc.w - 12, 24, 16 * k, 9);
+    fitText(clean, rc.w - 12, 28, (portrait ? 21 : 18) * k, 10);
     this.textsKey = `${this.mode}|${JSON.stringify(this.options)}`;
   }
 
@@ -5675,16 +5734,25 @@ class ControlsView {
     drawPanel(g, r.x, r.y, r.w, r.h, { fill: enabled ? COLORS.cream : COLORS.paperShade, border: COLORS.brassDark, radius: 14 });
     const cx = r.x + r.w / 2;
     const cy = r.y + r.h * 0.38;
-    // Trapo a cuadros.
-    g.fillStyle(enabled ? COLORS.white : COLORS.paperShade, 1);
-    g.fillRoundedRect(cx - 20, cy - 14, 40, 28, 6);
-    g.fillStyle(enabled ? COLORS.brick : COLORS.chromeDark, 0.8);
-    for (let i = 0; i < 3; i++) {
-      g.fillRect(cx - 20 + i * 14, cy - 14, 6, 28);
-      g.fillRect(cx - 20, cy - 14 + i * 10, 40, 4);
-    }
-    g.lineStyle(2, COLORS.ink, 1);
-    g.strokeRoundedRect(cx - 20, cy - 14, 40, 28, 6);
+    // Reloj de arena: un respiro de 3 segundos.
+    const ink = enabled ? COLORS.ink : COLORS.chromeDark;
+    const sand = enabled ? COLORS.mustard : COLORS.paperEdge;
+    const f = view.cleaningFraction;
+    g.fillStyle(COLORS.brassDark, 1);
+    g.fillRoundedRect(cx - 16, cy - 20, 32, 5, 2);
+    g.fillRoundedRect(cx - 16, cy + 15, 32, 5, 2);
+    g.fillStyle(COLORS.white, 0.85);
+    g.fillTriangle(cx - 12, cy - 15, cx + 12, cy - 15, cx, cy);
+    g.fillTriangle(cx - 12, cy + 15, cx + 12, cy + 15, cx, cy);
+    // La arena baja mientras dura el respiro.
+    const top = 1 - f;
+    g.fillStyle(sand, 1);
+    if (top > 0.02) g.fillTriangle(cx - 12 * top, cy - 15 * top, cx + 12 * top, cy - 15 * top, cx, cy);
+    const bottom = f > 0 ? f : 0.45;
+    g.fillTriangle(cx - 12, cy + 15, cx + 12, cy + 15, cx, cy + 15 - 15 * bottom);
+    g.lineStyle(2, ink, 1);
+    g.strokeTriangle(cx - 12, cy - 15, cx + 12, cy - 15, cx, cy);
+    g.strokeTriangle(cx - 12, cy + 15, cx + 12, cy + 15, cx, cy);
     if (view.cleaningFraction > 0) {
       g.lineStyle(5, COLORS.teal, 1);
       g.beginPath();
@@ -5721,8 +5789,8 @@ const { textStyle, fitText } = __m18;
 class HudView {
   /**
    * @param {Phaser.Scene} scene
-   * @param {{ onPause: () => void }} callbacks
-   * @param {{ reducedMotion: boolean, largeText: boolean }} options
+   * @param {{ onPause: () => void, onMusic: () => void }} callbacks
+   * @param {{ reducedMotion: boolean, largeText: boolean, musicOn?: boolean }} options
    */
   constructor(scene, callbacks, options) {
     this.scene = scene;
@@ -5736,7 +5804,12 @@ class HudView {
     this.pauseArt = scene.add.graphics();
     this.pauseZone = scene.add.zone(0, 0, 56, 48).setOrigin(0, 0).setInteractive({ useHandCursor: true });
     this.pauseZone.on("pointerdown", () => callbacks.onPause());
-    this.root.add([this.bg, this.sign, this.info, this.pauseArt, this.pauseZone]);
+    // Botón de música (encender / apagar), junto a la pausa.
+    this.musicOn = options.musicOn !== false;
+    this.musicArt = scene.add.graphics();
+    this.musicZone = scene.add.zone(0, 0, 56, 48).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+    this.musicZone.on("pointerdown", () => callbacks.onMusic());
+    this.root.add([this.bg, this.sign, this.info, this.pauseArt, this.pauseZone, this.musicArt, this.musicZone]);
     this.width = 1280;
     this.height = 60;
     this.lastInfo = "";
@@ -5778,8 +5851,14 @@ class HudView {
     p.fillRoundedRect(px + size * 0.32, py + size * 0.28, size * 0.12, size * 0.44, 2);
     p.fillRoundedRect(px + size * 0.56, py + size * 0.28, size * 0.12, size * 0.44, 2);
 
-    this.info.setPosition(px - 16, height / 2);
-    this.infoMaxW = px - 16 - (this.sign.x + this.sign.width + 24);
+    const mx = px - size - 12;
+    this.musicZone.setPosition(mx, py);
+    this.musicZone.setSize(size, size);
+    this.musicBox = { x: mx, y: py, size };
+    this.drawMusic();
+
+    this.info.setPosition(mx - 16, height / 2);
+    this.infoMaxW = mx - 16 - (this.sign.x + this.sign.width + 24);
     this.lastInfo = "";
   }
 
@@ -5811,6 +5890,41 @@ class HudView {
       this.info.setText(text);
       fitText(this.info, Math.max(80, this.infoMaxW ?? 400), this.height * 0.5, Math.min(22, this.height * 0.4) * (this.options.largeText ? 1.1 : 1), 10);
     }
+  }
+
+  /** @param {boolean} on */
+  setMusicOn(on) {
+    if (this.musicOn === on) return;
+    this.musicOn = on;
+    this.drawMusic();
+  }
+
+  drawMusic() {
+    if (!this.musicBox) return;
+    const { x, y, size } = this.musicBox;
+    const g = this.musicArt;
+    const cx = x + size / 2;
+    const cy = y + size / 2;
+    g.clear();
+    g.fillStyle(COLORS.brassDark, 1);
+    g.fillCircle(cx, cy + 2, size / 2);
+    g.fillStyle(this.musicOn ? COLORS.brass : COLORS.chromeDark, 1);
+    g.fillCircle(cx, cy, size / 2);
+    // Corchea.
+    const s = size / 52;
+    g.fillStyle(COLORS.ink, 1);
+    g.fillEllipse(cx - 5 * s, cy + 9 * s, 13 * s, 10 * s);
+    g.fillRect(cx + 0.5 * s, cy - 13 * s, 3 * s, 22 * s);
+    g.fillTriangle(cx + 3 * s, cy - 13 * s, cx + 3 * s, cy - 3 * s, cx + 12 * s, cy - 4 * s);
+    if (!this.musicOn) {
+      // Tachada: música apagada.
+      g.lineStyle(4 * s, COLORS.brick, 1);
+      g.lineBetween(cx - 14 * s, cy + 14 * s, cx + 14 * s, cy - 14 * s);
+    }
+  }
+
+  musicCenter() {
+    return { x: this.musicZone.x + this.musicZone.width / 2, y: this.musicZone.y + this.musicZone.height / 2 };
   }
 
   pauseCenter() {
@@ -6249,6 +6363,7 @@ const { practiceStep } = __m12;
  * @property {(text: string) => void} announce
  * @property {(session: ReturnType<typeof createSession>) => void} onSessionEnd
  * @property {() => void} onPauseRequest
+ * @property {() => void} onToggleMusic
  * @property {(scene: any) => void} onReady
  */
 
@@ -6300,7 +6415,11 @@ function defineBarScene(Phaser) {
         },
         this.viewOptions,
       );
-      this.hud = new HudView(this, { onPause: () => this.requestPause() }, this.viewOptions);
+      this.hud = new HudView(
+        this,
+        { onPause: () => this.requestPause(), onMusic: () => this.app.onToggleMusic() },
+        { ...this.viewOptions, musicOn: s.musicOn },
+      );
       this.feedback = new FeedbackView(this, this.viewOptions);
       this.coach = new CoachView(this, this.viewOptions);
       this.film = new FilmView(this, this.viewOptions);
@@ -6365,6 +6484,7 @@ function defineBarScene(Phaser) {
     /** @param {Partial<import("../platform/settings.js").Settings>} settings */
     applySettings(settings) {
       const patch = {};
+      if ("musicOn" in settings) this.hud.setMusicOn(settings.musicOn);
       for (const key of ["reducedMotion", "colorBlind", "largeText"]) {
         if (key in settings) patch[key] = settings[key];
       }
@@ -6483,7 +6603,7 @@ function defineBarScene(Phaser) {
       const gaugeActive = m.phase === "brewing" && !!step?.gauge;
       const cleaning = state.cleaningMs > 0;
       let status;
-      if (cleaning) status = "Limpiando la máquina… el riel espera.";
+      if (cleaning) status = "Respiro: el riel espera 3 segundos.";
       else if (m.phase === "ready") status = "¡Lista! Toca la comanda que le corresponde.";
       else if (gaugeActive) {
         const zone = gaugeZone(m.gauge);
@@ -6586,7 +6706,7 @@ function defineBarScene(Phaser) {
           }
           case "clean":
             audio.play("clean");
-            announce("Limpiando la máquina. El riel espera tres segundos.");
+            announce("Respiro de tres segundos. El riel espera.");
             break;
           default:
             break;
@@ -6655,6 +6775,10 @@ function defineBarScene(Phaser) {
     onKeyDown(event) {
       if (event.repeat && event.code !== "Space") return;
       const key = event.key.length === 1 ? event.key.toUpperCase() : event.key;
+      if (key === "M") {
+        this.app.onToggleMusic();
+        return;
+      }
       if (key === "Escape" || key === "P") {
         this.requestPause();
         return;
@@ -6687,6 +6811,7 @@ function defineBarScene(Phaser) {
         return c ? { ...c, radius: 92 * this.rail.ticketScale } : null;
       }
       if (id === "pause") return this.hud.pauseCenter();
+      if (id === "music") return this.hud.musicCenter();
       if (id === "gauge") return this.machine.gaugeWorldPoint();
       if (id === "plaque") return this.machine.plaqueWorldPoint();
       return this.controls.controlCenter(id);
@@ -7005,6 +7130,11 @@ async function boot() {
           onSessionEnd(session).catch((err) => overlay.showError(String(err && err.message ? err.message : err)));
         },
         onPauseRequest: () => overlay.show("pause"),
+        onToggleMusic: () => {
+          const on = !settingsStore.settings.musicOn;
+          applySettings({ musicOn: on });
+          announce(on ? "Música encendida." : "Música apagada.");
+        },
         onReady: (readyScene) => {
           scene = readyScene;
           game.canvas.setAttribute("tabindex", "0");

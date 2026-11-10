@@ -400,7 +400,17 @@ scripts/build.mjs        ← genera:
   - Al entregarla vuela en arco hasta la comanda; si no coincide, se vuelca y cae.
 - Con movimiento reducido, la taza aparece en su sitio sin caer ni rebotar y no hay salpicaduras ni vuelos.
 
-## 14. Fuera de la fase 1
+## 14. Respiro y música (fase 1.3)
+
+- El botón "Limpiar" pasa a llamarse **"Respiro 3 s"** y su icono es un reloj de arena que se vacía mientras dura. Hace lo mismo: congela el riel 3 segundos, sin penalización.
+- **Música:** sonaba demasiado baja y casi toda en graves (contrabajo bajo 230 Hz), que los altavoces de teléfonos y portátiles apenas reproducen.
+  - Se subió el volumen.
+  - El contrabajo sube una octava, con onda de sierra filtrada para tener más armónicos.
+  - Se agregó una frase de vibráfono en registro medio.
+  - La programación de notas mira 350 ms por delante (antes 120 ms), para que no se corte si el dispositivo va lento.
+- **Interruptor de música:** botón con una corchea en la barra superior, tecla M y casilla en Ajustes. Solo apaga la música; los efectos siguen sonando. La preferencia se guarda (`settings.musicOn`).
+
+## 15. Fuera de la fase 1
 
 - Niveles Centro y Estación de tren (el formato de `levels` ya los admite).
 - Batería de evaluación previa y posterior.
@@ -408,7 +418,7 @@ scripts/build.mjs        ← genera:
 - Arte con imágenes o Spine; por ahora todo es vectorial por código.
 - Sincronización entre dispositivos.
 
-## 15. Decisiones tomadas fuera del prompt
+## 16. Decisiones tomadas fuera del prompt
 
 - **Pasos visibles pero automáticos.** El jugador elige bebida y modificadores; la máquina ejecuta los pasos sola. Así la carga cognitiva está en recordar y configurar, no en memorizar recetas.
 - **Regla de las trampas:** "el texto manda". El icono puede mentir; el texto de la comanda es la orden real. Se explica en la pantalla de inicio.

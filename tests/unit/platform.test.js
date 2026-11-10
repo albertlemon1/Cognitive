@@ -19,6 +19,8 @@ test("normalizeState corrige valores inválidos y conserva los válidos", () => 
   assert.equal(state.settings.largeText, true);
   assert.equal(state.settings.calm, true);
   assert.equal(state.progress.lastLevel, 1);
+  assert.equal(state.settings.musicOn, true, "la música está encendida por defecto");
+  assert.equal(normalizeState({ settings: { musicOn: false } }).settings.musicOn, false);
   assert.deepEqual(normalizeState(null).settings, defaultSettings());
 });
 

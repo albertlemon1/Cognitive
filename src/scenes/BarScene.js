@@ -20,6 +20,7 @@ import { practiceStep } from "../core/tutorial.js";
  * @property {(text: string) => void} announce
  * @property {(session: ReturnType<typeof createSession>) => void} onSessionEnd
  * @property {() => void} onPauseRequest
+ * @property {() => void} onToggleMusic
  * @property {(scene: any) => void} onReady
  */
 
@@ -71,7 +72,11 @@ export function defineBarScene(Phaser) {
         },
         this.viewOptions,
       );
-      this.hud = new HudView(this, { onPause: () => this.requestPause() }, this.viewOptions);
+      this.hud = new HudView(
+        this,
+        { onPause: () => this.requestPause(), onMusic: () => this.app.onToggleMusic() },
+        { ...this.viewOptions, musicOn: s.musicOn },
+      );
       this.feedback = new FeedbackView(this, this.viewOptions);
       this.coach = new CoachView(this, this.viewOptions);
       this.film = new FilmView(this, this.viewOptions);
@@ -136,6 +141,7 @@ export function defineBarScene(Phaser) {
     /** @param {Partial<import("../platform/settings.js").Settings>} settings */
     applySettings(settings) {
       const patch = {};
+      if ("musicOn" in settings) this.hud.setMusicOn(settings.musicOn);
       for (const key of ["reducedMotion", "colorBlind", "largeText"]) {
         if (key in settings) patch[key] = settings[key];
       }
@@ -254,7 +260,7 @@ export function defineBarScene(Phaser) {
       const gaugeActive = m.phase === "brewing" && !!step?.gauge;
       const cleaning = state.cleaningMs > 0;
       let status;
-      if (cleaning) status = "Limpiando la máquina… el riel espera.";
+      if (cleaning) status = "Respiro: el riel espera 3 segundos.";
       else if (m.phase === "ready") status = "¡Lista! Toca la comanda que le corresponde.";
       else if (gaugeActive) {
         const zone = gaugeZone(m.gauge);
@@ -357,7 +363,7 @@ export function defineBarScene(Phaser) {
           }
           case "clean":
             audio.play("clean");
-            announce("Limpiando la máquina. El riel espera tres segundos.");
+            announce("Respiro de tres segundos. El riel espera.");
             break;
           default:
             break;
@@ -426,6 +432,10 @@ export function defineBarScene(Phaser) {
     onKeyDown(event) {
       if (event.repeat && event.code !== "Space") return;
       const key = event.key.length === 1 ? event.key.toUpperCase() : event.key;
+      if (key === "M") {
+        this.app.onToggleMusic();
+        return;
+      }
       if (key === "Escape" || key === "P") {
         this.requestPause();
         return;
@@ -458,6 +468,7 @@ export function defineBarScene(Phaser) {
         return c ? { ...c, radius: 92 * this.rail.ticketScale } : null;
       }
       if (id === "pause") return this.hud.pauseCenter();
+      if (id === "music") return this.hud.musicCenter();
       if (id === "gauge") return this.machine.gaugeWorldPoint();
       if (id === "plaque") return this.machine.plaqueWorldPoint();
       return this.controls.controlCenter(id);
