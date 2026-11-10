@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 import { loadCatalog, stepsFor, allowedModifiers, canonicalModifiers, CatalogError } from "../../src/core/catalog.js";
 import { rawRecipes, realCatalog } from "./helpers.js";
 
-test("el catálogo real valida: 12 bebidas, 4 modificadores, nivel Barrio", () => {
+test("el catálogo real valida: 6 bebidas, 4 modificadores, nivel Barrio", () => {
   const catalog = realCatalog();
-  assert.equal(catalog.drinkOrder.length, 12);
+  assert.equal(catalog.drinkOrder.length, 6);
   assert.deepEqual(catalog.modifierOrder, ["azucar", "doble", "avena", "llevar"]);
   assert.ok(catalog.levels.barrio);
   for (const id of catalog.drinkOrder) {
@@ -87,7 +87,7 @@ test("doble también escala la molienda descafeinada", () => {
 test("allowedModifiers: avena solo para bebidas con leche o espuma", () => {
   const catalog = realCatalog();
   assert.ok(allowedModifiers(catalog, "cortado").includes("avena"));
-  assert.ok(allowedModifiers(catalog, "macchiato").includes("avena"));
+  assert.ok(allowedModifiers(catalog, "capuchino").includes("avena"));
   assert.ok(!allowedModifiers(catalog, "espresso").includes("avena"));
   assert.ok(allowedModifiers(catalog, "espresso").includes("azucar"));
   assert.deepEqual(allowedModifiers(catalog, "no-existe"), []);

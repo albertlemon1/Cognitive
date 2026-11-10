@@ -261,7 +261,7 @@ Tipos de efecto de modificador: `appendStep`, `replaceStep`, `scaleStep` (multip
 
 Pasos de fase 1: moler, moler_descaf, extraer, agua, leche, leche_avena, espuma, espuma_avena, cacao, canela, condensada, nata, hielo, decorar, azucar, tapa.
 
-Bebidas de fase 1 (12): espresso, americano, cortado, macchiato, capuchino, latte, moka, descafeinado, bombón, vienés, café helado, café de olla.
+Bebidas (6): espresso, americano, descafeinado, cortado, capuchino y latte. Se eligieron por ser distintas a la vista y por formar parejas parecidas para las trampas (familia "solo": espresso, americano, descafeinado; familia "leche": cortado, capuchino, latte). Los pasos de las bebidas retiradas (chocolate, condensada, nata, hielo, canela) siguen en el catálogo, así que volver a agregarlas solo requiere datos.
 
 Modificadores (4): azúcar, doble carga, leche de avena, para llevar.
 
@@ -386,7 +386,21 @@ scripts/build.mjs        ← genera:
   - Línea de estado de la consola con la instrucción completa.
   - El texto da la misma información que el color, así que sirve también en modo daltónico.
 
-## 13. Fuera de la fase 1
+## 13. Menú de 6 bebidas y animación de la bebida (fase 1.2)
+
+- La consola muestra 6 teclas grandes en 3×2, con el dibujo arriba y el nombre debajo.
+- La máquina es más alta y la taza pasó de 74 a 125 unidades: es donde se ve la bebida servirse.
+- Animación de la taza:
+  - Cae sobre la bandeja al tirar de la palanca, se aplasta un poco al aterrizar y se recupera.
+  - El chorro se afina al caer, ondula y salpica; la superficie del líquido ondula mientras entra.
+  - La leche y la espuma entran con un remolino; la espuma tiene burbujas.
+  - El corazón del latte se dibuja poco a poco.
+  - Sube vapor de la taza mientras tiene bebida caliente.
+  - Lista: rebota suavemente, con brillo y destellos.
+  - Al entregarla vuela en arco hasta la comanda; si no coincide, se vuelca y cae.
+- Con movimiento reducido, la taza aparece en su sitio sin caer ni rebotar y no hay salpicaduras ni vuelos.
+
+## 14. Fuera de la fase 1
 
 - Niveles Centro y Estación de tren (el formato de `levels` ya los admite).
 - Batería de evaluación previa y posterior.
@@ -394,7 +408,7 @@ scripts/build.mjs        ← genera:
 - Arte con imágenes o Spine; por ahora todo es vectorial por código.
 - Sincronización entre dispositivos.
 
-## 14. Decisiones tomadas fuera del prompt
+## 15. Decisiones tomadas fuera del prompt
 
 - **Pasos visibles pero automáticos.** El jugador elige bebida y modificadores; la máquina ejecuta los pasos sola. Así la carga cognitiva está en recordar y configurar, no en memorizar recetas.
 - **Regla de las trampas:** "el texto manda". El icono puede mentir; el texto de la comanda es la orden real. Se explica en la pantalla de inicio.

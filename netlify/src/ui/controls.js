@@ -8,8 +8,9 @@ export const DRINK_KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-"
 
 // Dos distribuciones: horizontal (4×3 teclas) y vertical (3×4 teclas).
 const ARRANGEMENTS = {
-  landscape: { w: 680, h: 430, cols: 4, keyW: 158, keyH: 58, gap: 8, top: 44, switchH: 70, bottomH: 92, lever: 220, pressure: 220, clean: 200 },
-  portrait: { w: 700, h: 560, cols: 3, keyW: 220, keyH: 62, gap: 9, top: 48, switchH: 74, bottomH: 120, lever: 250, pressure: 250, clean: 160 },
+  // Teclas de bebida "apiladas": dibujo grande arriba y nombre debajo.
+  landscape: { w: 680, h: 448, cols: 3, keyW: 216, keyH: 100, gap: 8, top: 44, switchH: 70, bottomH: 92, lever: 220, pressure: 220, clean: 200 },
+  portrait: { w: 700, h: 512, cols: 3, keyW: 222, keyH: 112, gap: 9, top: 48, switchH: 74, bottomH: 120, lever: 250, pressure: 250, clean: 160 },
 };
 
 /**
@@ -163,11 +164,9 @@ export class ControlsView {
 
     this.catalog.drinkOrder.forEach((id, i) => {
       const r = this.rects.get(`drink:${id}`);
-      const iconSize = r.h * 0.78;
-      const labelX = r.x + iconSize + 12;
-      const label = add(`drink:${id}`, this.scene.add.text(labelX, r.y + r.h / 2, this.catalog.drinks[id].label, textStyle(21 * k, { bold: true })));
-      label.setOrigin(0, 0.5);
-      fitText(label, r.x + r.w - labelX - 8, r.h - 10, (portrait ? 23 : 19) * k, 10);
+      const label = add(`drink:${id}`, this.scene.add.text(r.x + r.w / 2, r.y + r.h - 9, this.catalog.drinks[id].label, textStyle(24 * k, { bold: true, align: "center" })));
+      label.setOrigin(0.5, 1);
+      fitText(label, r.w - 16, r.h * 0.3, (portrait ? 26 : 23) * k, 12);
       if (this.options.keyHints) add(`hint:drink:${id}`, this.hint(DRINK_KEYS[i], r.x + r.w - 6, r.y + 4));
     });
 
@@ -239,10 +238,10 @@ export class ControlsView {
       const selected = view.selectedDrink === id;
       const dim = locked && !selected;
       this.drawKey(g, r, selected, dim);
-      const iconSize = r.h * 0.78;
-      drawCup(g, iconSpec(this.catalog, id), r.x + iconSize * 0.55 + 6, r.y + r.h - 6 + (selected ? 3 : 0), iconSize);
+      const iconSize = r.h * 0.58;
+      drawCup(g, iconSpec(this.catalog, id), r.x + r.w / 2 - iconSize * 0.06, r.y + r.h * 0.66 + (selected ? 3 : 0), iconSize);
       const label = this.texts.get(`drink:${id}`);
-      label.setY(r.y + r.h / 2 + (selected ? 3 : 0));
+      label.setY(r.y + r.h - 9 + (selected ? 3 : 0));
       label.setColor(selected ? CSS.ink : CSS.coffee);
       label.setAlpha(dim ? 0.5 : 1);
     });
